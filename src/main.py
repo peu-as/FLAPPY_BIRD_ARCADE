@@ -1,222 +1,247 @@
 # ============================================================
-# PROJETO: FLAPPY BIRD
-# DISCIPLINA: Programação para Engenharia Mecânica
-# SPRINT 02: Física, salto e animação do pássaro
+# PROJETO: FLAPPY BIRD | SPRINT 03
+# Obstáculos, colisões, pontuação e estados do jogo
 # ============================================================
 
-# pathlib permite montar caminhos sem depender da pasta do terminal.
 from pathlib import Path
-
-# Biblioteca utilizada para janelas, eventos, imagens e desenho 2D.
+import random
 import pygame
 
-
-# ------------------------------------------------------------
-# 1. CONFIGURAÇÕES DO JOGO
-# ------------------------------------------------------------
-
-# Resolução lógica de referência (independente do monitor).
+# 1. CONSTANTES E CAMINHOS
 LARGURA = 575
 ALTURA = 860
-
-# Limite de quadros por segundo.
 FPS = 30
-
-# Ocupa, no máximo, 85% das dimensões informadas pelo monitor.
 FATOR_TELA = 0.85
-
-# Parâmetros de movimento por quadro, em pixels lógicos.
-GRAVIDADE = 1.1         # Incremento de velocidade a cada quadro.
-IMPULSO = -8           # Velocidade vertical aplicada ao saltar.
-
-# Coordenada vertical do topo do solo lógico.
+GRAVIDADE = 1.1
+IMPULSO = -8
 ALTURA_SOLO = 760
-
-# Número de quadros entre mudanças de sprite.
 QUADROS_ANIMACAO = 5
+VELOCIDADE_CANOS = 4
+ABERTURA_CANOS = 290
+DISTANCIA_CANOS = 300
+# False: colisão por retângulos; True: colisão por máscaras.
+USAR_MASCARAS = True
 
-# Localiza a raiz do projeto a partir deste arquivo (src/main.py).
 RAIZ_PROJETO = Path(__file__).resolve().parent.parent
 PASTA_IMAGENS = RAIZ_PROJETO / "assets" / "imgs"
 
 
-# ------------------------------------------------------------
-# 2. CLASSE RESPONSÁVEL PELO PÁSSARO
-# ------------------------------------------------------------
+def carregar_imagem(nome):
+    """Carrega um PNG preservando sua transparência."""
+    caminho = PASTA_IMAGENS / nome
+    if not caminho.is_file():
+        raise FileNotFoundError(f"Imagem ausente: {caminho}")
+    return pygame.image.load(str(caminho)).convert_alpha()
 
+
+# 2. CLASSE DO PÁSSARO: MANTÉM A FÍSICA DA SPRINT 02
 class Passaro:
-    """Armazena o estado e implementa o movimento do pássaro."""
-
     def __init__(self, imagens):
-        # Lista de sprites que representam o bater de asas.
         self.imagens = imagens
-
-        # Define posição inicial, usando números reais (float).
         self.x = 150.0
         self.y = 300.0
-
-        # Começa em repouso vertical.
         self.velocidade_y = 0.0
-
-        # Controla qual imagem será desenhada.
         self.indice_imagem = 0
         self.contador_animacao = 0
-
-        # Obtém dimensões do sprite para tratar os limites.
         self.largura = imagens[0].get_width()
         self.altura = imagens[0].get_height()
 
     def pular(self):
-        # No Pygame, velocidade negativa significa subir.
+        # No sistema gráfico, velocidade negativa significa subir.
         self.velocidade_y = IMPULSO
 
     def atualizar(self):
-        # Atualiza primeiro a velocidade e depois a posição.
-        # Esse procedimento é um Euler semiexplícito simplificado.
+        # Euler semiexplícito: primeiro velocidade, depois posição.
         self.velocidade_y += GRAVIDADE
         self.y += self.velocidade_y
-
-        # Impede que o pássaro ultrapasse o topo do cenário.
-        if self.y < 0:
-            self.y = 0
-            self.velocidade_y = 0
-
-        # Impede que a parte inferior atravesse o solo lógico.
-        limite_inferior = ALTURA_SOLO - self.altura
-        if self.y > limite_inferior:
-            self.y = limite_inferior
-            self.velocidade_y = 0
-
-        # Conta os quadros para alternar os sprites.
+        # Atualiza o quadro da animação a cada cinco iterações.
         self.contador_animacao += 1
         if self.contador_animacao >= QUADROS_ANIMACAO:
             self.contador_animacao = 0
-            self.indice_imagem = (
-                self.indice_imagem + 1
-            ) % len(self.imagens)
+            self.indice_imagem = (self.indice_imagem + 1) % len(self.imagens)
+
+    def imagem_atual(self):
+        return self.imagens[self.indice_imagem]
+
+    def retangulo(self):
+        # O mesmo arredondamento é usado para desenhar e colidir.
+        return pygame.Rect(int(self.x), int(self.y), self.largura, self.altura)
 
     def desenhar(self, superficie):
-        # Escolhe a imagem correspondente ao quadro da animação.
-        imagem = self.imagens[self.indice_imagem]
-
-        # O desenho usa coordenadas inteiras em pixels lógicos.
-        superficie.blit(imagem, (int(self.x), int(self.y)))
+        superficie.blit(self.imagem_atual(), self.retangulo().topleft)
 
 
-# ------------------------------------------------------------
-# 3. CARREGAMENTO DAS IMAGENS
-# ------------------------------------------------------------
+# 3. CLASSE CANO: UM OBJETO REPRESENTA UM PAR
+class Cano:
+    def __init__(self, x, imagem_cano):
+        self.x = float(x)
+        self.imagem_inferior = imagem_cano
+        # O cano superior é uma cópia invertida verticalmente.
+        self.imagem_superior = pygame.transform.flip(imagem_cano, False, True)
+        self.largura = imagem_cano.get_width()
+        self.altura = imagem_cano.get_height()
+        # Escolhe a borda superior da passagem livre.
+        self.topo_passagem = random.randint(150, 400)
+        self.passou = False  # Evita contabilizar duas vezes.
 
-def carregar_imagens():
-    """Carrega os três sprites e preserva a transparência PNG."""
+    def atualizar(self):
+        self.x -= VELOCIDADE_CANOS
 
-    imagens = []
+    def retangulos(self):
+        x = int(self.x)
+        # Cano de cima termina exatamente no topo da passagem.
+        superior = self.imagem_superior.get_rect(
+            topleft=(x, self.topo_passagem - self.altura)
+        )
+        # Cano de baixo começa após a abertura vertical.
+        inferior = self.imagem_inferior.get_rect(
+            topleft=(x, self.topo_passagem + ABERTURA_CANOS)
+        )
+        return superior, inferior
 
-    # Percorre os nomes dos três arquivos enviados.
-    for numero in (1, 2, 3):
-        caminho = PASTA_IMAGENS / f"bird{numero}.png"
+    def desenhar(self, superficie):
+        superior, inferior = self.retangulos()
+        superficie.blit(self.imagem_superior, superior.topleft)
+        superficie.blit(self.imagem_inferior, inferior.topleft)
 
-        # Informa claramente quando falta algum arquivo.
-        if not caminho.is_file():
-            raise FileNotFoundError(
-                f"Sprite não encontrado: {caminho}\n"
-                "Copie bird1.png, bird2.png e bird3.png "
-                "para assets/imgs/."
+    def colide_com(self, passaro):
+        ret_passaro = passaro.retangulo()
+        ret_superior, ret_inferior = self.retangulos()
+        # Primeiro teste: caixas retangulares (rápido).
+        for imagem, ret_cano in (
+            (self.imagem_superior, ret_superior),
+            (self.imagem_inferior, ret_inferior),
+        ):
+            if not ret_passaro.colliderect(ret_cano):
+                continue
+            if not USAR_MASCARAS:
+                return True
+            # Segundo teste: apenas pixels opacos dos PNGs.
+            mascara_passaro = pygame.mask.from_surface(passaro.imagem_atual())
+            mascara_cano = pygame.mask.from_surface(imagem)
+            deslocamento = (
+                ret_cano.x - ret_passaro.x,
+                ret_cano.y - ret_passaro.y,
             )
-
-        # convert_alpha() preserva transparência e otimiza desenho.
-        imagem = pygame.image.load(str(caminho)).convert_alpha()
-        imagens.append(imagem)
-
-    return imagens
+            if mascara_passaro.overlap(mascara_cano, deslocamento) is not None:
+                return True
+        return False
 
 
-# ------------------------------------------------------------
-# 4. FUNÇÃO PRINCIPAL
-# ------------------------------------------------------------
+# 4. FUNÇÕES DE CONTROLE DO JOGO
+def nova_partida(imagens_passaro, imagem_cano):
+    """Reinicia os objetos e o placar, sem fechar a janela."""
+    passaro = Passaro(imagens_passaro)
+    canos = [Cano(LARGURA + 25, imagem_cano)]
+    pontos = 0
+    return passaro, canos, pontos
+
+
+def desenhar_texto(superficie, texto, tamanho, y, cor=(255, 255, 255)):
+    """Desenha uma mensagem centralizada horizontalmente."""
+    fonte = pygame.font.Font(None, tamanho)
+    imagem = fonte.render(texto, True, cor)
+    x = (LARGURA - imagem.get_width()) // 2
+    superficie.blit(imagem, (x, y))
+
 
 def main():
-    # Inicializa os módulos do Pygame.
     pygame.init()
-
-    # Consulta a resolução informada pelo monitor.
+    # Mantém a adaptação da janela física da Sprint 01.
     info = pygame.display.Info()
-    largura_monitor = info.current_w
-    altura_monitor = info.current_h
-
-    # Calcula o fator de escala sem ultrapassar o tamanho lógico.
-    escala_largura = largura_monitor * FATOR_TELA / LARGURA
-    escala_altura = altura_monitor * FATOR_TELA / ALTURA
-    escala = min(escala_largura, escala_altura, 1.0)
-
-    # Obtém as dimensões físicas da janela (em pixels inteiros).
-    largura_janela = int(LARGURA * escala)
-    altura_janela = int(ALTURA * escala)
-
-    # Cria a janela física adaptada ao monitor.
+    escala = min(
+        info.current_w * FATOR_TELA / LARGURA,
+        info.current_h * FATOR_TELA / ALTURA,
+        1.0,
+    )
+    largura_janela = max(1, int(LARGURA * escala))
+    altura_janela = max(1, int(ALTURA * escala))
     tela = pygame.display.set_mode((largura_janela, altura_janela))
-    pygame.display.set_caption("Flappy Bird — Sprint 02")
-
-    # Cria uma superfície com resolução lógica FIXA.
+    pygame.display.set_caption("Flappy Bird — Sprint 03")
     cenario = pygame.Surface((LARGURA, ALTURA))
 
-    # As imagens são carregadas após a criação da janela.
-    imagens = carregar_imagens()
-    passaro = Passaro(imagens)
-
-    # Cria o relógio e a variável de controle do loop.
+    # Carrega os recursos já presentes no projeto-base.
+    imagens_passaro = [carregar_imagem(f"bird{i}.png") for i in (1, 2, 3)]
+    imagem_cano = carregar_imagem("pipe.png")
+    passaro, canos, pontos = nova_partida(imagens_passaro, imagem_cano)
+    estado = "MENU"  # MENU, JOGO ou GAMEOVER
     relogio = pygame.time.Clock()
     executando = True
 
-    # --------------------------------------------------------
-    # 5. LOOP PRINCIPAL DO JOGO
-    # --------------------------------------------------------
-
     while executando:
-        # 5.1. Processamento dos eventos do sistema e do teclado.
+        # 5.1. Eventos: fechamento, início, salto e reinício.
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 executando = False
-
-            # Um evento KEYDOWN de Espaço produz um salto.
             elif evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_SPACE:
-                    passaro.pular()
+                if evento.key == pygame.K_ESCAPE:
+                    executando = False
+                elif evento.key == pygame.K_SPACE:
+                    if estado == "MENU":
+                        estado = "JOGO"
+                        passaro.pular()
+                    elif estado == "JOGO":
+                        passaro.pular()
+                    elif estado == "GAMEOVER":
+                        passaro, canos, pontos = nova_partida(
+                            imagens_passaro, imagem_cano
+                        )
+                        estado = "JOGO"
+                        passaro.pular()
 
-        # 5.2. Atualização da física e da animação.
-        passaro.atualizar()
+        # 5.2. Física e regras só são atualizadas durante o jogo.
+        if estado == "JOGO" and executando:
+            passaro.atualizar()
+            for cano in canos:
+                cano.atualizar()
 
-        # 5.3. Desenho em coordenadas lógicas.
-        cenario.fill((135, 206, 235))  # Fundo azul-claro.
+            # Cria um novo par quando o último avançou o suficiente.
+            if canos[-1].x <= LARGURA - DISTANCIA_CANOS:
+                canos.append(Cano(LARGURA, imagem_cano))
 
-        # Representa o solo com um retângulo verde.
+            # Retira obstáculos inteiramente fora da tela.
+            canos = [cano for cano in canos if cano.x + cano.largura >= 0]
+
+            # Testa limites físicos e canos ANTES de atribuir pontos.
+            bateu_limite = passaro.y < 0 or passaro.y + passaro.altura >= ALTURA_SOLO
+            bateu_cano = any(cano.colide_com(passaro) for cano in canos)
+            if bateu_limite or bateu_cano:
+                estado = "GAMEOVER"
+            else:
+                for cano in canos:
+                    # Pontua somente após o par ficar totalmente atrás do pássaro.
+                    if not cano.passou and cano.x + cano.largura < passaro.x:
+                        cano.passou = True
+                        pontos += 1
+
+        # 5.3. Desenha tudo em coordenadas lógicas.
+        cenario.fill((135, 206, 235))
+        for cano in canos:
+            cano.desenhar(cenario)
         pygame.draw.rect(
-            cenario,
-            (70, 160, 80),
+            cenario, (70, 160, 80),
             (0, ALTURA_SOLO, LARGURA, ALTURA - ALTURA_SOLO),
         )
-
-        # Desenha o pássaro sobre o cenário lógico.
         passaro.desenhar(cenario)
+        desenhar_texto(cenario, f"PONTOS: {pontos}", 44, 35)
 
-        # 5.4. Escalonamento apenas da imagem final.
+        if estado == "MENU":
+            desenhar_texto(cenario, "FLAPPY BIRD", 65, 175)
+            desenhar_texto(cenario, "ESPACO para iniciar", 35, 245)
+        elif estado == "GAMEOVER":
+            desenhar_texto(cenario, "FIM DE JOGO", 65, 195)
+            desenhar_texto(cenario, "ESPACO para reiniciar", 35, 270)
+
+        # 5.4. Ajusta apenas a imagem final ao tamanho da janela.
         imagem_final = pygame.transform.scale(
             cenario, (largura_janela, altura_janela)
         )
         tela.blit(imagem_final, (0, 0))
         pygame.display.flip()
-
-        # Mantém o limite de até 30 quadros por segundo.
         relogio.tick(FPS)
 
-    # Encerra o Pygame depois que o loop termina.
     pygame.quit()
 
 
-# ------------------------------------------------------------
-# 6. PONTO DE ENTRADA DO PROGRAMA
-# ------------------------------------------------------------
-
 if __name__ == "__main__":
     main()
- 
