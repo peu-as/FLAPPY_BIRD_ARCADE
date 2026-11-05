@@ -6,7 +6,8 @@ Formato (versão 1):
       "settings": {"music": true, "sfx": true, "visual_fx": true},
       "wallet":   {"coins": 0},
       "skins":    {"owned": ["classico"], "equipped": "classico"},
-      "progress": {}            # por mapa: casas liberadas e estrelas (Fase 3)
+      "progress": {},           # por mapa: casas liberadas e estrelas (Fase 3)
+      "records":  {"free_best_streak": 0}   # Modo Livre: maior sequência sem cair
     }
 
 Garantias:
@@ -33,6 +34,7 @@ PADRAO = {
     'wallet': {'coins': 0},
     'skins': {'owned': ['classico'], 'equipped': 'classico'},
     'progress': {},
+    'records': {'free_best_streak': 0},
 }
 
 # MIGRACOES[n] recebe um save da versão n e devolve um da versão n + 1.

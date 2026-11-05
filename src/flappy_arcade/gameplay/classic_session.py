@@ -36,8 +36,8 @@ from ..config.constants import (
 )
 from ..config.debug import ATALHO_INVALIDA_RANKING, MODO_TESTE, TECLAS_NIVEL
 from .difficulty import (
+    DificuldadeOriginal,
     desvio_maximo_passagem,
-    parametros_nivel,
     proximo_multiplo,
     sortear_topo_passagem,
 )
@@ -69,6 +69,11 @@ class ClassicSession:
       audio     -- AudioManager (respeita as configurações de música e SFX)
       clock     -- relógio com now() em segundos e ticks() em milissegundos
     """
+    # Tabelas de dificuldade (o Modo Livre troca pela curva de 25 níveis).
+    dificuldade = DificuldadeOriginal()
+    # Último nível do ciclo: concluí-lo mostra a tela de Honra Máxima.
+    NIVEL_MAXIMO_CICLO = NIVEL_MAXIMO
+
     def __init__(self, recursos, audio, clock):
         self.recursos = recursos
         self.audio = audio
@@ -221,10 +226,15 @@ class ClassicSession:
 
     # DIFICULDADE PROGRESSIVA (modo clássico)
     @property
+    def nivel_dificuldade(self):
+        """Nível usado nas tabelas de dificuldade. No clássico é o próprio
+        nível do ciclo; o Modo Livre o calcula pelo tempo de jogo."""
+        return self.nivel
+
+    @property
     def params_nivel(self):
-        """Parâmetros do nível atual (gravidade, abertura, velocidade...).
-        Veja parametros_nivel() para a tabela dos 10 níveis."""
-        return parametros_nivel(self.nivel)
+        """Parâmetros do Flappy no nível atual (gravidade, abertura, velocidade...)."""
+        return self.dificuldade.flappy(self.nivel_dificuldade)
 
     def gravidade_atual(self):
         """Gravidade do nível atual."""
@@ -267,8 +277,8 @@ class ClassicSession:
     def definir_nivel(self, nivel):
         """Começa o ciclo de um nível: zera o progresso do ciclo e recalcula os
         gatilhos. A pontuação NÃO é alterada. A dificuldade do modo clássico vem
-        de self.nivel (parametros_nivel), então ela muda junto."""
-        self.nivel = max(1, min(NIVEL_MAXIMO, int(nivel)))
+        de self.nivel (veja nivel_dificuldade), então ela muda junto."""
+        self.nivel = max(1, min(self.NIVEL_MAXIMO_CICLO, int(nivel)))
         self.especial = False                    # fora da fase dos pássaros
         self.pendentes = self.ordem_especiais(self.nivel)
         self.proximo_especial = proximo_multiplo(self.pontos)
@@ -344,9 +354,9 @@ class ClassicSession:
         """Troca para o estado da variante e cria a fase.
 
         O tempo_ativo do Flappy fica congelado: o ciclo de temas só continua
-        depois que a fase termina. A dificuldade da fase vem do
-        NÍVEL do jogo (self.nivel - 1 = 0 a 9), e a fase dos pássaros também
-        passa por aqui (variante 'PASSAROS').
+        depois que a fase termina. A dificuldade da fase vem do provedor de
+        dificuldade (self.dificuldade), e a fase dos pássaros também passa
+        por aqui (variante 'PASSAROS').
         """
         if variante == 'PASSAROS':
             self.iniciar_fase_passaros()
@@ -356,11 +366,13 @@ class ClassicSession:
         self.ultimo_dano = -TEMPO_INVULNERAVEL_MS
         if variante == 'DONKEY':
             self.estado = 'DONKEY'
-            self.donkey = FaseDonkey(self.recursos, self.nivel - 1)
+            n = self.nivel_dificuldade
+            self.donkey = FaseDonkey(self.recursos, n - 1, self.dificuldade.donkey(n))
             self.passaro = self.novo_passaro_donkey()
         else:
             self.estado = 'GALAGA'
-            self.galaga = FaseGalaga(self.recursos, self.nivel - 1)
+            n = self.nivel_dificuldade
+            self.galaga = FaseGalaga(self.recursos, n - 1, self.dificuldade.galaga(n))
 
     def iniciar_fase_passaros(self):
         """Começa a fase dos pássaros: o Flappy volta com PÁSSAROS no lugar
@@ -410,7 +422,7 @@ class ClassicSession:
         """Fim da fase dos pássaros = fim do ciclo: sobe de nível, ou, se
         era o nível 10, vence o jogo (tela de HONRA MÁXIMA)."""
         self.especial = False
-        if self.nivel >= NIVEL_MAXIMO:
+        if self.nivel >= self.NIVEL_MAXIMO_CICLO:
             self.vitoria_final()
             return
         self.definir_nivel(self.nivel + 1)
@@ -493,7 +505,12 @@ class ClassicSession:
         self.tocar('morte')
         if self.vidas <= 0:
             self.finalizar()
-        elif self.estado == 'GALAGA':
+        else:
+            self.reposicionar_apos_dano()
+
+    def reposicionar_apos_dano(self):
+        """Depois de um dano (sem fim de jogo), recoloca o jogador em jogo."""
+        if self.estado == 'GALAGA':
             # Na Galaga, a nave volta ao centro; a formação continua.
             self.galaga.reposicionar_jogador()
         elif self.estado == 'DONKEY':

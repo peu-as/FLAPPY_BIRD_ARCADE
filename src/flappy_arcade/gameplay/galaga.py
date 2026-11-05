@@ -193,10 +193,11 @@ class ChefeGalaga:
     """
     Y_ALVO = 205            # altura final (abaixo do placar e da barra de vida)
 
-    def __init__(self, sprites, nivel):
+    def __init__(self, sprites, nivel, cfg):
         self.sprite, self.sprite_flash = sprites
         self.nivel = nivel
-        self.hp_max = 24 + 4*nivel            # 24 PV no nível 1 ... 60 PV no nível 10
+        self.cfg = cfg                        # parâmetros do nível (chaves 'chefe_*')
+        self.hp_max = cfg['chefe_hp']
         self.hp = self.hp_max
         self.x, self.y = LARGURA/2, -130.0
         self.tempo = 0.0
@@ -219,7 +220,7 @@ class ChefeGalaga:
         self.convocacoes = 0            # escoltas já convocadas (0, 1 ou 2)
         self.novos_tiros = []           # a FaseGalaga recolhe estes tiros a cada quadro
         self.novas_escoltas = 0
-        self.vel_tiro = 250 + 12*nivel
+        self.vel_tiro = cfg['chefe_vel_tiro']
         self.fonte = pygame.font.Font(None, 22)
 
     # ---- estado ----
@@ -267,7 +268,7 @@ class ChefeGalaga:
 
     # ---- ataques ----
     def _intervalo(self):
-        return max(0.9, 2.4 - 0.15*self.nivel)*(0.75 if self.fase == 2 else 1.0)
+        return self.cfg['chefe_intervalo']*(0.75 if self.fase == 2 else 1.0)
 
     def _escolher_ataque(self):
         opcoes = ['LEQUE', 'MIRA']
@@ -298,7 +299,7 @@ class ChefeGalaga:
         if self.ataque == 'LEQUE':
             if not self.disparou and self.t_ataque >= 0.4:       # 0,4 s de carga (brilho)
                 self.disparou = True
-                k = 5 + self.nivel//3
+                k = self.cfg['chefe_leque']
                 centro = self._ang_para_nave(nave_x)
                 for i in range(k):
                     self._tiro(centro + (i - (k-1)/2)*0.20, v)
@@ -315,7 +316,7 @@ class ChefeGalaga:
                     else:
                         self._fim_ataque()
         elif self.ataque == 'RAIO':
-            aviso = max(0.8, 1.2 - 0.04*self.nivel)
+            aviso = self.cfg['chefe_aviso_raio']
             if self.raio_estado == 'AVISO':
                 if self.t_ataque >= aviso - 0.45:
                     self.raio_travado = True        # trava a posição: dá 0,45 s para sair de baixo
@@ -365,15 +366,15 @@ class ChefeGalaga:
         # Convoca escoltas ao cruzar 66% e 33% da vida.
         if self.fase > self.convocacoes:
             self.convocacoes += 1
-            self.novas_escoltas += 3 + self.nivel//4
+            self.novas_escoltas += self.cfg['chefe_escoltas']
         # Movimento horizontal: vai e vem; no RAIO, alinha com a nave e trava.
-        vel = 150 + 10*self.nivel
+        vel = self.cfg['chefe_velocidade']
         if self.ataque == 'RAIO' and not self.raio_travado and self.raio_estado == 'AVISO':
             alvo, vel = nave_x, 320
         elif self.ataque == 'RAIO':
             alvo = self.x                        # travado (aviso final e raio ligado)
         else:
-            alvo = LARGURA/2 + 170*math.sin(self.tempo*(0.55 + 0.04*self.nivel))
+            alvo = LARGURA/2 + 170*math.sin(self.tempo*self.cfg['chefe_freq_movimento'])
         passo = vel*dt
         self.x += max(-passo, min(passo, alvo - self.x))
         if self.ataque is None:
@@ -439,8 +440,8 @@ class FaseGalaga:
     especiais entra em curva, balança e faz mergulhos de ataque.
     A fase termina quando todos os inimigos são abatidos ou o tempo acaba.
 
-    A dificuldade depende de quantas vezes a fase já apareceu
-    (parâmetro nivel; veja parametros_galaga).
+    A dificuldade vem do dicionário cfg (veja parametros_galaga e a curva
+    de 25 níveis em difficulty_curve.py).
     A fase é BÔNUS: não soma pontos ao placar; concluir dá vidas extras.
 
     Comunicação com a ClassicSession (sem a FaseGalaga conhecer a sessão):
@@ -449,10 +450,11 @@ class FaseGalaga:
       - dano: True quando a nave foi atingida neste quadro;
       - terminou: True quando a fase acabou e a sessão deve voltar ao Flappy.
     """
-    def __init__(self, recursos, nivel=0):
+    def __init__(self, recursos, nivel=0, cfg=None):
         self.recursos = recursos
-        self.nivel = nivel          # 0 na primeira vez; aumenta a dificuldade
-        self.cfg = parametros_galaga(nivel)    #
+        self.nivel = nivel          # 0 no nível 1 (só para exibir "NÍVEL n")
+        # Toda a dificuldade vem de cfg; sem cfg, usa a tabela do jogo original.
+        self.cfg = parametros_galaga(nivel) if cfg is None else cfg
         self.tempo_limite = self.cfg['tempo']
         self.tempo = 0.0
         self.nave_x = LARGURA/2
@@ -850,7 +852,7 @@ class FaseGalaga:
         self.estagio = 'CHEFE'
         self.tempo_estagio = 0.0
         self.chefe = ChefeGalaga((self.recursos.chefe_galaga, self.recursos.chefe_galaga_flash),
-                                 self.nivel)
+                                 self.nivel, self.cfg)
         self.tiros = [t for t in self.tiros if t.do_jogador]
         self.escoltas = []
         self.mensagem = 'CHEFÃO!\nBOSS GALAGA'
@@ -869,7 +871,7 @@ class FaseGalaga:
         e = Inimigo(self.recursos.inimigos[nome], 0, 3, 0.0, 1)
         e.x, e.y = c.x + random.randint(-50, 50), c.y + 40
         e.furioso = True
-        e.mergulhar(self.nave_x, max(1.6, 2.6 - 0.1*self.nivel), atraso=random.random()*0.5,
+        e.mergulhar(self.nave_x, self.cfg['escolta_duracao_mergulho'], atraso=random.random()*0.5,
                     persegue=self.cfg['persegue'], lado=random.choice((-1, 1)))
         self.escoltas.append(e)
 

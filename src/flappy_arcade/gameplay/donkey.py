@@ -191,10 +191,11 @@ class FaseDonkey:
     Y_MAO_CHEFE = Y_CHAO + 8 - int(170*1.35) + 27
     X_MAO_CHEFE = 500.0            # x de onde os barris saem no chefão
 
-    def __init__(self, recursos, nivel=0):
+    def __init__(self, recursos, nivel=0, cfg=None):
         self.recursos = recursos
-        self.nivel = nivel          # 0 no nível 1 do jogo ... 9 no nível 10
-        self.cfg = parametros_donkey(nivel)
+        self.nivel = nivel          # 0 no nível 1 (só para exibir "NÍVEL n")
+        # Toda a dificuldade vem de cfg; sem cfg, usa a tabela do jogo original.
+        self.cfg = parametros_donkey(nivel) if cfg is None else cfg
         self.tempo = 0.0
         self.velocidade = self.cfg['velocidade']
         self.chance_barril = self.cfg['chance_barril']
@@ -567,7 +568,7 @@ class FaseDonkey:
     def _escolher_ataque(self):
         """SALVA de barris ou FOGO (as chamas entram a partir do nível 2)."""
         opcoes = ['SALVA']
-        if self.nivel >= 1:
+        if self.cfg['fogo']:
             opcoes += ['SALVA', 'FOGO']
         if self.ultimo_ataque == 'FOGO':
             opcoes = [o for o in opcoes if o != 'FOGO']      # não repete o fogo
@@ -596,7 +597,7 @@ class FaseDonkey:
             self.preparo = 0.6*raiva
             self.carregando = True
         else:                                        # FOGO: avisa antes de soltar
-            quantas = 1 + (1 if self.nivel >= 3 else 0) + (1 if self.nivel >= 7 else 0)
+            quantas = self.cfg['fogo_chamas']
             centro = passaro.y + passaro.sprite.get_height()/2
             for i in range(quantas):
                 desvio = random.randint(-40, 40) if i == 0 else random.choice((-1, 1))*random.randint(110, 170)

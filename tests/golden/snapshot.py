@@ -16,7 +16,10 @@ import pygame
 IGNORADOS = {
     # infraestrutura que mudou de lugar na nova arquitetura
     'recursos', 'janela', 'tela', 'relogio', 'tamanho', 'clock', 'audio',
-    'som_ativo', 'bus', 'settings',
+    'som_ativo', 'bus', 'settings', 'save',
+    # tabela de parâmetros do nível: derivada do nível, cresceu com chaves novas
+    # na Fase 2; o efeito dela aparece nas posições, velocidades e vidas
+    'cfg',
     'fonte', 'fonte_grande', 'fonte_banner', 'fonte_contagem',
     'fonte_tabela', 'fonte_titulo_tabela',
 }

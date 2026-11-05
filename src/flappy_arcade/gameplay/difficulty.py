@@ -1,7 +1,10 @@
 """Dificuldade por nível e helpers de justiça das passagens.
 
-Funções puras: recebem o nível e devolvem parâmetros. Na Fase 2 esta é a base
-da curva de 25 níveis.
+Funções puras: recebem o nível e devolvem parâmetros. São as tabelas do jogo
+original (10 níveis); a curva de 25 níveis (difficulty_curve.py) parte delas.
+
+Toda a dificuldade das fases passa por aqui: as classes das fases não fazem
+contas com o número do nível, só leem estes dicionários (cfg).
 """
 import random
 
@@ -111,6 +114,16 @@ def parametros_galaga(nivel):
         'balanco': min(60, 30 + 4*n),                   # amplitude do balanço (px)
         'freq_balanco': min(1.6, 0.9 + 0.08*n),
         'tempo': TEMPO_GALAGA + 3*n,                    # limite de tempo da formação (s)
+        # --- chefão (Boss Galaga) ---
+        'chefe_hp': 24 + 4*n,                           # 24 PV no nível 1 ... 60 no nível 10
+        'chefe_intervalo': max(0.9, 2.4 - 0.15*n),      # s entre ataques (x0,75 na 2ª metade da vida)
+        'chefe_leque': 5 + n//3,                        # tiros do ataque em LEQUE
+        'chefe_aviso_raio': max(0.8, 1.2 - 0.04*n),     # s de aviso antes do RAIO TRATOR
+        'chefe_escoltas': 3 + n//4,                     # escoltas convocadas a 66% e 33% da vida
+        'chefe_velocidade': 150 + 10*n,                 # px/s do vai e vem
+        'chefe_freq_movimento': 0.55 + 0.04*n,          # frequência do vai e vem
+        'chefe_vel_tiro': 250 + 12*n,                   # px/s dos tiros do chefão
+        'escolta_duracao_mergulho': max(1.6, 2.6 - 0.1*n),
     }
 
 def parametros_donkey(nivel):
@@ -144,4 +157,24 @@ def parametros_donkey(nivel):
         'chefe_barris': 2 if n < 3 else 3,
         'chefe_vel_barril': 5.5 + 0.2*n,                    # px/quadro
         'chefe_vel_fogo': 8.0 + 0.3*n,
+        'fogo': n >= 1,                                     # chamas no chefão a partir do nível 2
+        'fogo_chamas': 1 + (1 if n >= 3 else 0) + (1 if n >= 7 else 0),   # chamas por ataque
     }
+
+
+class DificuldadeOriginal:
+    """Provedor de dificuldade com as tabelas do jogo original (níveis 1 a 10).
+
+    A sessão pede os parâmetros pelo nível do jogo (sempre 1, 2, 3...); a
+    conversão para o índice interno das tabelas (0 a 9) fica aqui.
+    """
+    nivel_maximo = NIVEL_MAXIMO
+
+    def flappy(self, nivel):
+        return parametros_nivel(nivel)
+
+    def galaga(self, nivel):
+        return parametros_galaga(nivel - 1)
+
+    def donkey(self, nivel):
+        return parametros_donkey(nivel - 1)
