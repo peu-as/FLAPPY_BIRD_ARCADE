@@ -20,7 +20,9 @@ def test_app_roda_e_fecha(monkeypatch, tmp_path):
         pygame.event.post(e)
     sessao = None
 
-    class Espiao(modulo_app.GameScene):
+    from flappy_arcade.scenes.game_scene import GameScene
+
+    class Espiao(GameScene):
         def update(self, dt):
             nonlocal sessao
             sessao = self.session
@@ -34,7 +36,7 @@ def test_app_roda_e_fecha(monkeypatch, tmp_path):
     assert (tmp_path / 'save.json').exists()
 
 
-def test_esc_fecha_o_jogo(monkeypatch, tmp_path):
+def test_esc_na_tela_de_modos_fecha_o_jogo(monkeypatch, tmp_path):
     import flappy_arcade.core.app as modulo_app
     monkeypatch.setattr(modulo_app, 'ARQUIVO_SAVE', tmp_path / 'save.json')
     app = App()

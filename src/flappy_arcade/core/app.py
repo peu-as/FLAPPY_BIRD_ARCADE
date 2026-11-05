@@ -12,8 +12,9 @@ import pygame
 
 from ..config.constants import ALTURA, LARGURA
 from ..gameplay.resources import Recursos
-from ..scenes.game_scene import GameScene
+from ..scenes.mode_select import ModeSelectScene
 from ..systems.audio_manager import AudioManager
+from ..systems.progress import ProgressStore
 from ..systems.save_manager import SaveManager
 from ..systems.settings_store import SettingsStore
 from .clock import GameClock
@@ -37,6 +38,7 @@ class AppContext:
     bus: EventBus
     clock: GameClock
     scenes: SceneManager
+    progress: ProgressStore
 
 
 class App:
@@ -52,13 +54,13 @@ class App:
         self.ctx = AppContext(
             window=self.window, resources=recursos, save=save, settings=settings,
             audio=AudioManager(settings, recursos.sons, bus), bus=bus,
-            clock=GameClock(), scenes=SceneManager())
+            clock=GameClock(), scenes=SceneManager(), progress=ProgressStore(save, bus))
         self.tela = pygame.Surface((LARGURA, ALTURA))
 
     def run(self, cena_inicial=None, max_quadros=None):
         """Roda até a pilha de cenas esvaziar. max_quadros serve aos testes."""
         cenas = self.ctx.scenes
-        cenas.push(cena_inicial or GameScene(self.ctx))
+        cenas.push(cena_inicial or ModeSelectScene(self.ctx))
         relogio = pygame.time.Clock()
         quadros = 0
         try:

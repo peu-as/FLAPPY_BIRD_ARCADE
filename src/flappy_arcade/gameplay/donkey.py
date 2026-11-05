@@ -549,7 +549,14 @@ class FaseDonkey:
         self.bananas = [b for b in self.bananas if b.x + 30 >= 0]
         # Fim da travessia: o cronômetro zerou com o pássaro vivo -> CHEFÃO.
         if self.tempo >= TEMPO_DONKEY and not self.dano:
-            self._iniciar_chefe()
+            if self.cfg.get('chefe', True):
+                self._iniciar_chefe()
+            else:                       # casa do mapa sem chefão: a travessia basta
+                self.resultado = 'VITORIA'
+                self.vidas_ganhas += VIDAS_POR_FASE_ESPECIAL
+                self.mensagem = 'TRAVESSIA CONCLUÍDA!'
+                self.barris, self.fogos = [], []
+                self.sons.append('ponto')
 
     # CHEFÃO: Kong furioso (rebites, salvas de barris e bolas de fogo)
     def _iniciar_chefe(self):

@@ -1,6 +1,6 @@
 # Arquitetura — Flappy Arcade
 
-Como rodar: `python src/main.py` (clássico) ou `python src/main.py --livre` (Modo Livre) · testes: `python -m pytest` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
+Como rodar: `python src/main.py` (tela de modos) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
 
 ## Pastas
 
@@ -18,15 +18,18 @@ src/
     config/
       constants.py           física, dificuldade, fases (valores originais)
       difficulty_profiles.py curva de 25 níveis: Rampa/Degraus por parâmetro
+      levels.py              mapas de 25 casas: nomes, cores, metas, chefões, estrelas
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
       settings_store.py      música / SFX / efeitos visuais
       audio_manager.py       SFX e música em canais separados
       ranking.py             Top 10 (ranking.json)
+      progress.py            estrelas por casa; casas liberadas em sequência
     gameplay/                o jogo original, reorganizado
       classic_session.py     estados, ciclo de níveis, entrada e telas
       free_mode.py           Modo Livre: sem vidas, dificuldade pelo tempo
+      level_session.py       casas dos mapas (Flappy, Galaga, Donkey): 3 vidas, estrelas
       flappy.py              Passaro, Obstaculo, Chao
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
@@ -35,14 +38,20 @@ src/
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
     scenes/
+      mode_select.py         escolha de modo (provisória até o menu da Fase 6)
+      map_scene.py           mapa de 25 casas com rolagem
+      level_scene.py         casa: abertura -> jogo -> resultado com estrelas
       game_scene.py          conduz a sessão (clássico ou livre)
     ui/
       theme.py               paleta (tirada dos sprites), medidas, animação, fontes
+      widgets.py             texto com contorno, painel, estrela, botões com hover e teclado
 tests/
   golden/                    gravação do jogo original e cenários
   test_golden_master.py      regra de ouro: clássico idêntico ao original
   test_difficulty_curve.py   curva: nível 1 = original, monotonia, passagens justas
   test_free_mode.py          regras e HUD do Modo Livre
+  test_levels.py             regras das casas e do progresso
+  test_menus.py              telas de modo, mapa e casa (fluxo completo)
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 
@@ -68,13 +77,17 @@ A física é por quadro e calibrada a 30 FPS, por isso a `GameScene` roda a 30 F
 | Provedor | Onde | Níveis | Usado por |
 |---|---|---|---|
 | `DificuldadeOriginal` | `gameplay/difficulty.py` | 1 a 10 | jogo clássico (idêntico ao original) |
-| `CurvaDificuldade` | `gameplay/difficulty_curve.py` + `config/difficulty_profiles.py` | 1 a 25 | Modo Livre e, na Fase 3, os mapas |
+| `CurvaDificuldade` | `gameplay/difficulty_curve.py` + `config/difficulty_profiles.py` | 1 a 25 | Modo Livre e mapas (casa N = nível N) |
 
 Na curva, o nível 1 é sempre o nível 1 original. Galaga e Donkey terminam no nível 10 original (o teto já testado); o Flappy vai um pouco além (gravidade 1,70, abertura 175 px, velocidade 6,2). Para balancear, edite só `config/difficulty_profiles.py` e rode `python -m pytest tests/test_difficulty_curve.py`.
 
 ## Modo Livre
 
 Sem cadastro, ranking ou game over. Bater conta uma queda e o pássaro volta com 1,2 s de invulnerabilidade. A dificuldade sobe um nível da curva a cada `LIVRE_SEGUNDOS_POR_NIVEL` (40 s) de jogo, sem contar pausas e alertas, até o 25. Os ciclos continuam depois do 10. Recorde: maior sequência de pontos sem cair (`records.free_best_streak` no save).
+
+## Mapas
+
+Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva. As casas são sessões que herdam da `ClassicSession`, então a física e as fases são as do original. Chefão nas casas 5, 10, 15, 20 e 25 (no Flappy, a fase dos pássaros), ligado por `cfg['chefe']`. Estrelas: 3 sem perder vida, 2 perdendo uma, 1 perdendo duas. Tempo esgotado na Galaga ou no Donkey é derrota. A casa N + 1 abre quando a N tem estrela.
 
 ## Save (`data/save.json`)
 
@@ -83,7 +96,7 @@ Sem cadastro, ranking ou game over. Bater conta uma queda e o pássaro volta com
   "settings": {"music": true, "sfx": true, "visual_fx": true},
   "wallet":   {"coins": 0},
   "skins":    {"owned": ["classico"], "equipped": "classico"},
-  "progress": {},
+  "progress": {"flappy": {"estrelas": [3, 2, 0, ...]}},
   "records":  {"free_best_streak": 0} }
 ```
 

@@ -838,9 +838,16 @@ class FaseGalaga:
 
         # --- Fim de fase ---
         if not self.inimigos:
-            # Formação derrubada: agora vem o CHEFÃO. A vida extra
-            # só é dada quando o chefão é derrotado.
-            self._iniciar_chefe()
+            # Formação derrubada: agora vem o CHEFÃO (se a fase tiver um; as casas
+            # do mapa sem chefão terminam aqui). A vida extra vem com a vitória.
+            if self.cfg.get('chefe', True):
+                self._iniciar_chefe()
+            else:
+                self.resultado = 'VITORIA'
+                self.vidas_ganhas += VIDAS_POR_FASE_ESPECIAL
+                self.mensagem = 'FORMAÇÃO DERROTADA!'
+                self.tiros = []
+                self.sons.append('ponto')
         elif self.tempo >= self.tempo_limite:
             self.resultado = 'TEMPO'
             self.mensagem = 'TEMPO ESGOTADO'
