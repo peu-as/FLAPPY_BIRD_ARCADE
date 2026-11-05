@@ -14,9 +14,11 @@ from ..config.constants import ALTURA, LARGURA
 from ..gameplay.resources import Recursos
 from ..scenes.mode_select import ModeSelectScene
 from ..systems.audio_manager import AudioManager
+from ..systems.economy import Carteira
 from ..systems.progress import ProgressStore
 from ..systems.save_manager import SaveManager
 from ..systems.settings_store import SettingsStore
+from ..systems.shop import Loja
 from .clock import GameClock
 from .display import Window
 from .event_bus import EventBus
@@ -39,6 +41,8 @@ class AppContext:
     clock: GameClock
     scenes: SceneManager
     progress: ProgressStore
+    wallet: Carteira
+    shop: Loja
 
 
 class App:
@@ -51,10 +55,12 @@ class App:
         save = SaveManager(ARQUIVO_SAVE)
         save.load()
         settings = SettingsStore(save, bus)
+        carteira = Carteira(save, bus)
         self.ctx = AppContext(
             window=self.window, resources=recursos, save=save, settings=settings,
             audio=AudioManager(settings, recursos.sons, bus), bus=bus,
-            clock=GameClock(), scenes=SceneManager(), progress=ProgressStore(save, bus))
+            clock=GameClock(), scenes=SceneManager(), progress=ProgressStore(save, bus),
+            wallet=carteira, shop=Loja(save, carteira, bus))
         self.tela = pygame.Surface((LARGURA, ALTURA))
 
     def run(self, cena_inicial=None, max_quadros=None):

@@ -7,10 +7,13 @@ e os botões do resultado (mapa, de novo, próxima).
 import pygame
 
 from ..config.constants import ALTURA, FPS, LARGURA
+from ..config.economy import BONUS_POR_ESTRELA_NOVA
 from ..config.levels import CAPITULOS, CASAS, MAPAS, NOMES_ESTILOS, cor_da_casa, etapa_arcade
 from ..core.scene import Scene
+from ..gameplay.coins import icone_moeda
 from ..gameplay.level_session import criar_sessao
 from ..ui.theme import Palette
+from .game_scene import preparar_recompensas
 from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, estrela, painel, texto
 
 ABERTURA, JOGANDO, RESULTADO = 'ABERTURA', 'JOGANDO', 'RESULTADO'
@@ -39,6 +42,9 @@ class LevelScene(Scene):
         self.info = MAPAS[mapa]
         self.cor = cor_da_casa(mapa, casa)
         self.session = criar_sessao(mapa, casa, ctx.resources, ctx.audio, ctx.clock)
+        preparar_recompensas(self.session, ctx)
+        self.depositadas = 0          # moedas (com bônus) já levadas à carteira
+        self.bonus = 0
         # O banner de início da sessão (ex.: "FASE DOS PÁSSAROS!") espera o jogo
         # começar, em vez de ficar congelado atrás do cartão de abertura.
         self.banner_guardado, self.session.banner_tempo = self.session.banner_tempo, 0.0
@@ -60,6 +66,8 @@ class LevelScene(Scene):
         s = self.session
         if s.resultado == 'VITORIA':
             self.melhorou, self.liberou = self.ctx.progress.registrar(self.mapa, self.casa, s.estrelas)
+            self.bonus = BONUS_POR_ESTRELA_NOVA * max(0, s.estrelas - self.melhor_antes)
+        self._depositar()
         self.fase, self.tempo_fase = RESULTADO, 0.0
         botoes = self._botoes_resultado()
         self.grupo = GrupoBotoes(botoes, colunas=3)
@@ -68,7 +76,7 @@ class LevelScene(Scene):
     def _botoes_resultado(self):
         venceu = self.session.resultado == 'VITORIA'
         tem_proxima = venceu and self.casa < CASAS
-        largura, y = 150, ALTURA // 2 + 128
+        largura, y = 150, ALTURA // 2 + 166
         botoes = [
             Botao((0, 0, largura, 58), 'MAPA', self._mapa, 'secundario', tamanho_texto=30),
             Botao((0, 0, largura, 58), 'DE NOVO', self._de_novo,
@@ -80,6 +88,15 @@ class LevelScene(Scene):
         for i, b in enumerate(botoes):
             b.rect.topleft = (LARGURA // 2 - total // 2 + i * (largura + 14), y)
         return botoes
+
+    def _depositar(self):
+        """Leva à carteira só o que ainda não foi depositado (pode rodar várias vezes)."""
+        novas = self.session.moedas_coletadas + self.bonus - self.depositadas
+        self.depositadas += novas
+        self.ctx.wallet.depositar(novas)
+
+    def on_exit(self):
+        self._depositar()           # saiu no meio: guarda o que já coletou
 
     def _mapa(self):
         self.manager.pop()
@@ -174,8 +191,8 @@ class LevelScene(Scene):
 
     def _desenhar_resultado(self, surface):
         venceu = self.session.resultado == 'VITORIA'
-        cartao = pygame.Rect(0, 0, 490, 290)
-        cartao.center = (LARGURA // 2, ALTURA // 2 - 30)
+        cartao = pygame.Rect(0, 0, 490, 320)
+        cartao.center = (LARGURA // 2, ALTURA // 2 - 22)
         painel(surface, cartao, Palette.PANEL)
         self._cabecalho(surface, cartao)
         titulo, cor = ('VITÓRIA!', Palette.LOGO_GREEN) if venceu else ('NÃO FOI DESSA VEZ', Palette.DANGER)
@@ -196,5 +213,20 @@ class LevelScene(Scene):
                     'MAPA COMPLETO!' if self.casa == CASAS else 'CASA CONCLUÍDA')
         else:
             nota = 'Tente de novo: R ou o botão abaixo'
-        desenhar_texto(surface, nota, 24, (cartao.centerx, cartao.bottom - 34), Palette.INK, contorno=None)
+        self._desenhar_moedas(surface, cartao.centerx, cartao.y + 226)
+        desenhar_texto(surface, nota, 24, (cartao.centerx, cartao.bottom - 30), Palette.INK, contorno=None)
         self.grupo.desenhar(surface)
+
+    def _desenhar_moedas(self, surface, cx, y):
+        """Linha "+N  (bônus +B)" com o ícone de moeda."""
+        partes = [texto(f'+{self.session.moedas_coletadas}', 30, Palette.COIN, Palette.INK, 2)]
+        if self.bonus:
+            partes.append(texto(f'  bônus +{self.bonus}', 24, Palette.WHITE, Palette.INK, 2))
+        icone = icone_moeda(12)
+        largura = icone.get_width() + 6 + sum(p.get_width() for p in partes)
+        x = cx - largura // 2
+        surface.blit(icone, icone.get_rect(midleft=(x, y)))
+        x += icone.get_width() + 6
+        for parte in partes:
+            surface.blit(parte, parte.get_rect(midleft=(x, y)))
+            x += parte.get_width()

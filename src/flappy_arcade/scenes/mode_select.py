@@ -10,12 +10,14 @@ import pygame
 from ..config.constants import LARGURA, Y_CHAO
 from ..config.levels import MAPAS, ORDEM_MAPAS
 from ..core.scene import Scene
+from ..gameplay.coins import icone_moeda
 from ..gameplay.flappy import Chao
 from ..gameplay.resources import ajustar_sprite
 from ..ui.theme import Palette
-from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, texto
+from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, painel, texto
 from .game_scene import GameScene
 from .map_scene import MapScene
+from .shop_scene import ShopScene
 
 LARGURA_BOTAO, ALTURA_BOTAO, ESPACO = 430, 60, 12
 Y_PRIMEIRO_BOTAO = 262
@@ -61,7 +63,13 @@ class ModeSelectScene(Scene):
               estilo='destaque', estrela_=True)
         botao(4, 'MODO LIVRE', lambda: self._jogar('livre'), 'livre', 'treino')
         botao(5, 'CLÁSSICO', lambda: self._jogar('classico'), 'classico', 'original', estilo='secundario')
+        botoes.append(Botao((LARGURA - 136, 14, 122, 48), 'LOJA', self._abrir_loja, 'destaque',
+                            icone=icone_moeda(12), tamanho_texto=28))
         return botoes
+
+    def _abrir_loja(self):
+        self.ctx.audio.play_sfx('ponto', 0.35)
+        self.manager.push(ShopScene(self.ctx))
 
     def _abrir_mapa(self, mapa):
         self.ctx.audio.play_sfx('ponto', 0.35)
@@ -88,6 +96,14 @@ class ModeSelectScene(Scene):
         self.chao.atualizar(2)
         self.grupo.atualizar(dt)
 
+    def _desenhar_saldo(self, surface):
+        rotulo = texto(str(self.ctx.wallet.saldo), 28, Palette.WHITE, Palette.INK, 2)
+        caixa = pygame.Rect(14, 18, rotulo.get_width() + 56, 40)
+        painel(surface, caixa, Palette.INK, Palette.INK, raio=20, sombra=0, brilho=False)
+        icone = icone_moeda(13)
+        surface.blit(icone, icone.get_rect(center=(caixa.x + 22, caixa.centery)))
+        surface.blit(rotulo, rotulo.get_rect(midleft=(caixa.x + 40, caixa.centery)))
+
     def draw(self, surface):
         surface.blit(self.fundo, (0, 0))
         oscila = math.sin(self.tempo * 2.2) * 6 if self.ctx.settings.visual_fx_enabled else 0
@@ -96,6 +112,7 @@ class ModeSelectScene(Scene):
         quadro = self.ctx.resources.passaros['dia'][int(self.tempo * 9) % 3]
         surface.blit(quadro, quadro.get_rect(center=(LARGURA // 2 + 150, 170 - oscila)))
         desenhar_texto(surface, 'ESCOLHA O MODO', 26, (LARGURA // 2, 226), Palette.WHITE)
+        self._desenhar_saldo(surface)
         self.grupo.desenhar(surface)
         self.chao.desenhar(surface)
         dica = texto('SETAS escolhem   ENTER joga   ESC sai', 22, Palette.INK, None)

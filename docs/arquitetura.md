@@ -19,6 +19,8 @@ src/
       constants.py           física, dificuldade, fases (valores originais)
       difficulty_profiles.py curva de 25 níveis: Rampa/Degraus por parâmetro
       levels.py              mapas de 25 casas + jornada Arcade (capítulos e etapas)
+      economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
+      skins.py               catálogo de skins: raridade, preço, cores, efeitos
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
@@ -26,10 +28,14 @@ src/
       audio_manager.py       SFX e música em canais separados
       ranking.py             Top 10 (ranking.json)
       progress.py            estrelas por casa; casas liberadas em sequência
+      economy.py             Carteira (saldo de moedas)
+      shop.py                Loja: comprar e equipar skins
     gameplay/                o jogo original, reorganizado
       classic_session.py     estados, ciclo de níveis, entrada e telas
       free_mode.py           Modo Livre: sem vidas, dificuldade pelo tempo
       level_session.py       casas dos mapas: 3 vidas, estrelas; criar_sessao(mapa, casa)
+      coins.py               moedas no jogo (ColetorMoedas) + mixin SessaoComMoedas
+      skins.py               SkinVisual: desenha a skin no lugar do pássaro
       flappy.py              Passaro, Obstaculo, Chao
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
@@ -40,7 +46,8 @@ src/
     scenes/
       mode_select.py         escolha de modo (provisória até o menu da Fase 6)
       map_scene.py           mapa de 25 casas com rolagem
-      level_scene.py         casa: abertura -> jogo -> resultado com estrelas
+      level_scene.py         casa: abertura -> jogo -> resultado com estrelas e moedas
+      shop_scene.py          loja: vitrine animada + grade de skins
       game_scene.py          conduz a sessão (clássico ou livre)
     ui/
       theme.py               paleta (tirada dos sprites), medidas, animação, fontes
@@ -53,6 +60,7 @@ tests/
   test_levels.py             regras das casas e do progresso
   test_menus.py              telas de modo, mapa e casa (fluxo completo)
   test_arcade.py             jornada Arcade: tabela, sessões por casa, mapa
+  test_economy.py            carteira, loja, skins, moedas; moedas/skin não mudam a física
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 
@@ -94,6 +102,13 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 
 `JORNADA` em `config/levels.py` é uma tabela de 5 capítulos (Céus, Selva, Entardecer, Noite, Espaço) com 5 casas cada; `'*'` marca o chefão, sempre na 5ª casa. Estilos: `flappy`, `passaros`, `donkey`, `galaga`. A casa N usa o nível N da curva, seja qual for o estilo. No mapa, o cenário de fundo acompanha o capítulo, cada casa tem um selo com o ícone do estilo e placas marcam os capítulos. Para mudar a jornada, edite a tabela: os testes conferem chefões no lugar certo, estilos misturados e nada repetido três vezes seguidas.
 
+## Economia e skins
+
+- **Moedas** só no Modo Livre, nos mapas e na jornada (o clássico é o original). Flappy: no centro da passagem (por onde o jogador já passa). Galaga: caem soltas, opcionais. Donkey: cada banana vale moedas. O `ColetorMoedas` usa o próprio `random.Random`: nunca o `random` do jogo, senão mudaria a sequência dos canos (há um teste que pega isso).
+- **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus de `BONUS_POR_ESTRELA_NOVA` só por estrela nova.
+- **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
+- **Preços**: comuns 50–100, raras 250–500, radicais 1000+ (`config/skins.py`, verificado por teste).
+
 ## Cuidados com o pygame
 
 Fontes (`ui/theme.py: Fonts`) e textos prontos (`ui/widgets.py`) ficam em cache e são esvaziados sozinhos no `pygame.quit()` (`pygame.register_quit`). Nunca guarde uma `Font` em variável global fora desse cache.
@@ -104,7 +119,7 @@ Fontes (`ui/theme.py: Fonts`) e textos prontos (`ui/widgets.py`) ficam em cache 
 { "version": 1,
   "settings": {"music": true, "sfx": true, "visual_fx": true},
   "wallet":   {"coins": 0},
-  "skins":    {"owned": ["classico"], "equipped": "classico"},
+  "skins":    {"owned": ["classico", "azul"], "equipped": "azul"},
   "progress": {"flappy": {"estrelas": [3, 2, 0, ...]}},
   "records":  {"free_best_streak": 0} }
 ```

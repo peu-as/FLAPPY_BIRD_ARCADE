@@ -44,7 +44,7 @@ def test_tela_de_modos(ctx):
     menu = cenas.top
     quadros(menu, 5)
     rotulos = [b.rotulo for b in menu.grupo.botoes]
-    assert len(rotulos) == 6
+    assert len(rotulos) == 7 and rotulos[-1] == 'LOJA'
     assert all(b.habilitado for b in menu.grupo.botoes)
     tecla(menu, pygame.K_RETURN)                                           # 1º botão: Donkey Kong
     assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'donkey'

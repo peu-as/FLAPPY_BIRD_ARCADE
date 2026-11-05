@@ -8,11 +8,19 @@ from ..config.constants import FPS
 from ..core.scene import Scene
 from ..gameplay.classic_session import ClassicSession
 from ..gameplay.free_mode import FreeSession
+from ..gameplay.skins import SkinVisual
 
 MODOS = {
     'classico': lambda ctx: ClassicSession(ctx.resources, ctx.audio, ctx.clock),
     'livre': lambda ctx: FreeSession(ctx.resources, ctx.audio, ctx.clock, ctx.save),
 }
+
+
+def preparar_recompensas(sessao, ctx):
+    """Veste a skin equipada e mostra o saldo atual (sessões com moedas)."""
+    sessao.preparar_recompensas(skin=SkinVisual(ctx.shop.equipada, ctx.resources),
+                                saldo=ctx.wallet.saldo,
+                                efeitos=ctx.settings.visual_fx_enabled)
 
 
 class GameScene(Scene):
@@ -22,11 +30,20 @@ class GameScene(Scene):
         super().__init__(ctx)
         self.modo = modo
         self.session = MODOS[modo](ctx)
+        self.depositadas = 0          # moedas desta sessão já levadas à carteira
+        if modo == 'livre':
+            preparar_recompensas(self.session, ctx)
 
     def on_exit(self):
         encerrar = getattr(self.session, 'encerrar', None)
         if encerrar:
             encerrar()
+        if self.modo == 'livre':
+            # deposita só o que ainda não foi depositado: seguro mesmo que
+            # on_exit rode mais de uma vez (ex.: um menu de pausa por cima)
+            novas = self.session.moedas_coletadas - self.depositadas
+            self.depositadas += novas
+            self.ctx.wallet.depositar(novas)
 
     def handle_event(self, event):
         if not self.session.tratar_evento(event):

@@ -14,6 +14,7 @@ from ..config.constants import LARGURA, TEMPO_INVULNERAVEL_MS
 from ..config.debug import TECLAS_DESCE_NIVEL, TECLAS_SOBE_NIVEL
 from ..config.difficulty_profiles import LIVRE_SEGUNDOS_POR_NIVEL, NIVEIS
 from .classic_session import ClassicSession
+from .coins import SessaoComMoedas
 from .difficulty_curve import CurvaDificuldade
 
 ESTADOS_QUE_CONTAM_TEMPO = ('JOGO', 'GALAGA', 'DONKEY')
@@ -22,7 +23,7 @@ COR_TITULO = (255, 225, 90)      # mesmo amarelo do HUD clássico
 COR_TEXTO = (230, 230, 240)
 
 
-class FreeSession(ClassicSession):
+class FreeSession(SessaoComMoedas, ClassicSession):
     dificuldade = CurvaDificuldade()
     NIVEL_MAXIMO_CICLO = float('inf')    # ciclos sem fim
 
@@ -146,7 +147,8 @@ class FreeSession(ClassicSession):
 
     # ------------------------------------------------------------ HUD
     def desenhar_placar(self, com_medalha=True, com_nivel=False):
-        """Pontos à esquerda; à direita, o painel do Modo Livre (sem vidas)."""
+        """Pontos à esquerda (o saldo de moedas fica logo abaixo); à direita,
+        o painel do Modo Livre (sem vidas e sem medalha)."""
         self.numero(self.pontos, 20, 45)
         # Linhas curtas, alinhadas à direita: não alcançam o centro da tela, onde
         # ficam avisos como "FASE DOS PÁSSAROS!" (teste de sobreposição por pixels).
@@ -164,7 +166,3 @@ class FreeSession(ClassicSession):
             imagem = fonte.render(texto, True, cor)
             self.tela.blit(imagem, (LARGURA - 12 - imagem.get_width(), y))
             y += imagem.get_height() + 3
-        if com_medalha:
-            medalha = self.medalha()
-            if medalha:
-                self.tela.blit(self.recursos.medalhas[medalha], (15, 120))

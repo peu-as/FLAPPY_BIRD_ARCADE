@@ -22,6 +22,11 @@ from ..config.constants import (
 # self identifica a instância que está executando o método.
 class Passaro:
     """Representa o jogador: posição, velocidade e animação."""
+
+    # Skin (só aparência): None desenha o pássaro original. A colisão usa sempre
+    # o sprite original (retangulo/máscara), com ou sem skin.
+    skin = None
+
     def __init__(self, recursos):
         self.recursos = recursos
         self.x, self.y, self.vy = 200.0, 350.0, 0.0
@@ -73,6 +78,9 @@ class Passaro:
     def desenhar(self, tela):
         # A rotação é visual; o retângulo/máscara usa sprite sem giro.
         angulo = max(-75, min(25, -self.vy*5))
+        if self.skin is not None:
+            self.skin.desenhar(tela, self, angulo)
+            return
         rot = pygame.transform.rotate(self.sprite, angulo)
         tela.blit(rot, rot.get_rect(center=self.retangulo().center))
 
