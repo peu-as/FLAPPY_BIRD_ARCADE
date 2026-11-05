@@ -20,6 +20,9 @@ Tipos de especificação:
 
 Correspondência usada para os degraus: nível k do original ~ nível
 1 + (k - 1) * 24/9 da curva (2 -> 4, 3 -> 6, 4 -> 9, 5 -> 12, 6 -> 14, 7 -> 17, 8 -> 20).
+Onde o original ligava várias mecânicas no mesmo nível, a curva as separa
+(uma novidade por casa): o playtest mostrou um degrau brusco quando três
+entravam juntas na casa 6 da Galaga.
 """
 from dataclasses import dataclass, field
 
@@ -54,7 +57,7 @@ FLAPPY = {
 }
 
 GALAGA = {
-    'linhas': Degraus({1: 3, 6: 4, 14: 5}),
+    'linhas': Degraus({1: 3, 6: 4, 13: 5}),
     'max_mergulhos': Rampa(inteiro=True),                       # 2 -> 5
     'intervalo_mergulho': Rampa(),                              # 1,8 s -> 0,9 s
     'duracao_mergulho': Rampa(),
@@ -62,8 +65,8 @@ GALAGA = {
     'velocidade_tiro': Rampa(inteiro=True),
     'max_tiros': Rampa(inteiro=True),                           # 5 -> 11
     'esquadrao': Degraus({1: 1, 4: 2, 12: 3}),
-    'persegue': Rampa(desde=6, inicio=0.12),                    # liga no nível 6
-    'leque': Degraus({1: 0, 6: 3, 14: 5}),
+    'persegue': Rampa(desde=7, inicio=0.12),                    # liga no nível 7
+    'leque': Degraus({1: 0, 8: 3, 16: 5}),
     'furia': Rampa(),
     'balanco': Rampa(inteiro=True),
     'freq_balanco': Rampa(),

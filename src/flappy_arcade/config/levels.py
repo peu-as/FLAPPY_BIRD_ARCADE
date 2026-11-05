@@ -25,8 +25,21 @@ def estrelas_por_danos(danos):
 
 
 def meta_flappy(casa):
-    """Canos a passar numa casa comum do mapa Flappy (9 na casa 1 ... 33 na 24)."""
-    return 8 + casa
+    """Canos a passar numa casa comum do Flappy (9 na casa 1 ... 26 na casa 24).
+
+    Cresce devagar porque a velocidade e a abertura já endurecem a casa; metas
+    longas demais nas casas altas faziam um único erro custar a fase inteira.
+    """
+    return 8 + round(0.75 * casa)
+
+
+def meta_chefe_flappy(casa):
+    """Pássaros a passar na fase dos pássaros de uma casa de chefão.
+
+    Os pássaros são alvos menores que os canos; com a mesma meta, o chefão
+    ficava mais fácil que as casas vizinhas. Por isso pede 8 a mais.
+    """
+    return meta_flappy(casa) + 8
 
 
 @dataclass(frozen=True)

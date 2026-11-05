@@ -66,6 +66,7 @@ tests/
   test_polish.py             pausa, configurações, reset, menu, música, transições
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
+  playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 

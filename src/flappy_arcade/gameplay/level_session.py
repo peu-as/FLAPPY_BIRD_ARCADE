@@ -13,6 +13,7 @@ from ..config.levels import (
     VIDAS_POR_CASA,
     estrelas_por_danos,
     etapa_arcade,
+    meta_chefe_flappy,
     meta_flappy,
     tem_chefe,
 )
@@ -131,6 +132,11 @@ class FlappyLevelSession(LevelSession):
     def comecar(self):
         if self.passaros:
             self.iniciar_fase_passaros()
+            if self.chefe:                   # chefão: fase dos pássaros mais longa
+                self.fim_passaros_em = self.pontos + meta_chefe_flappy(self.casa)
+                self.mostrar_banner('FASE DOS PÁSSAROS!',
+                                    f'passe por {self.fim_passaros_em} pássaros: é o chefão!',
+                                    (255, 225, 90))
             self.meta = self.fim_passaros_em
         else:
             self.meta = meta_flappy(self.casa)

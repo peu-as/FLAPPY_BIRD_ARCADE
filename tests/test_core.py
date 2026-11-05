@@ -1,4 +1,5 @@
 import pygame
+import pytest
 
 from flappy_arcade.core.display import calcular_viewport
 from flappy_arcade.core.scene import Scene, SceneManager
@@ -71,3 +72,29 @@ def test_cache_de_fontes_sobrevive_a_religar_o_pygame():
     pygame.init()
     pygame.display.set_mode((575, 860))
     assert texto('DEPOIS', 30).get_width() > 0
+
+
+@pytest.mark.parametrize('plataforma, esperado', [
+    ('win32', ('Local', 'FlappyBird', 'data', 'save.json')),
+    ('darwin', ('Application Support', 'FlappyBird', 'data', 'save.json')),
+    ('linux', ('share', 'FlappyBird', 'data', 'save.json')),
+])
+def test_executavel_guarda_o_save_na_pasta_do_usuario(monkeypatch, tmp_path, plataforma, esperado):
+    """Empacotado (PyInstaller), o save vai para a pasta de dados do sistema, não para junto do .exe."""
+    import importlib
+    import sys
+    from flappy_arcade.core import paths
+    monkeypatch.delenv('FLAPPY_DATA_DIR', raising=False)
+    monkeypatch.setattr(sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path / 'pacote'), raising=False)
+    monkeypatch.setattr(sys, 'platform', plataforma)
+    monkeypatch.setenv('LOCALAPPDATA', str(tmp_path / 'AppData' / 'Local'))
+    monkeypatch.delenv('XDG_DATA_HOME', raising=False)
+    monkeypatch.setenv('HOME', str(tmp_path))
+    try:
+        recarregado = importlib.reload(paths)
+        assert recarregado.ARQUIVO_SAVE.parts[-4:] == esperado
+        assert recarregado.IMAGENS == tmp_path / 'pacote' / 'assets' / 'imgs'
+    finally:
+        monkeypatch.undo()
+        importlib.reload(paths)

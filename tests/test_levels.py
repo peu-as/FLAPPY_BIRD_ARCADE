@@ -5,7 +5,7 @@ import pytest
 from scenarios import FakeClock
 
 from flappy_arcade.config.constants import TEMPO_DONKEY
-from flappy_arcade.config.levels import CASAS, meta_flappy
+from flappy_arcade.config.levels import CASAS, meta_chefe_flappy, meta_flappy
 from flappy_arcade.core.event_bus import EventBus
 from flappy_arcade.gameplay.difficulty_curve import CurvaDificuldade
 from flappy_arcade.gameplay.level_session import SESSOES_POR_MAPA
@@ -73,7 +73,7 @@ def test_estrelas_pelas_vidas_perdidas(criar):
 def test_flappy_casa_de_chefe_e_a_fase_dos_passaros(criar):
     s, _, _ = criar('flappy', 10)
     assert s.chefe and s.especial
-    assert s.meta == curva.flappy(10)['pontos_passaros']
+    assert s.meta == meta_chefe_flappy(10) > meta_flappy(10)
     assert 'pássaros' in s.objetivo
 
 
