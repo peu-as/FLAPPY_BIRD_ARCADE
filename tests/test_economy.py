@@ -17,7 +17,7 @@ from flappy_arcade.gameplay.level_session import criar_sessao
 from flappy_arcade.gameplay.skins import SkinVisual, trocar_paleta
 from flappy_arcade.scenes.game_scene import GameScene
 from flappy_arcade.scenes.level_scene import LevelScene
-from flappy_arcade.scenes.mode_select import ModeSelectScene
+from flappy_arcade.scenes.main_menu import MainMenuScene
 from flappy_arcade.scenes.shop_scene import ShopScene
 from flappy_arcade.systems.audio_manager import AudioManager
 from flappy_arcade.systems.economy import Carteira
@@ -299,7 +299,7 @@ def test_loja_rola_ate_o_fim_e_desenha(ctx, efeitos):
 
 
 def test_tela_de_modos_abre_a_loja(ctx):
-    menu = ModeSelectScene(ctx)
+    menu = MainMenuScene(ctx)
     ctx.scenes.push(menu)
     loja = next(b for b in menu.grupo.botoes if b.rotulo == 'LOJA')
     loja.ativar()

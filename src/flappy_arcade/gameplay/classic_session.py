@@ -73,6 +73,9 @@ class ClassicSession:
     dificuldade = DificuldadeOriginal()
     # Último nível do ciclo: concluí-lo mostra a tela de Honra Máxima.
     NIVEL_MAXIMO_CICLO = NIVEL_MAXIMO
+    # Atalhos na barra do topo. As cenas do jogo trocam por "P ou ESC: Pausa",
+    # porque nelas o ESC abre o menu de pausa em vez de sair.
+    TEXTO_ATALHOS = 'P: Pausa | ESC: Sair'
 
     def __init__(self, recursos, audio, clock):
         self.recursos = recursos
@@ -1045,7 +1048,7 @@ class ClassicSession:
             dica = 'ENTER: OK | ESC: Voltar'     # alinhada à direita (é mais larga que a padrão)
             self.texto(dica,LARGURA-8-self.fonte.size(dica)[0],5)
         else:
-            self.texto('P: Pausa | ESC: Sair',LARGURA-220,5)
+            self.texto(self.TEXTO_ATALHOS,LARGURA-220,5)
         # Rótulo da barra: agora também informa a fase Galaga.
         if self.estado == 'GALAGA':
             rotulo = 'FASE GALAGA'

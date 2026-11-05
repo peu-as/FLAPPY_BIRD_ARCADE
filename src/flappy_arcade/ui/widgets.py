@@ -232,3 +232,58 @@ class GrupoBotoes:
     def desenhar(self, superficie):
         for b in self.botoes:
             b.desenhar(superficie)
+
+
+class LinhaInterruptor:
+    """Linha de configuração: rótulo (e explicação) à esquerda, interruptor à direita.
+
+    Funciona dentro de um GrupoBotoes (mesmos atributos de um Botao): clicar em
+    qualquer ponto da linha, ou ENTER/ESPAÇO com ela em foco, liga e desliga.
+    """
+
+    def __init__(self, rect, rotulo, ler, alternar, explicacao=''):
+        self.rect = pygame.Rect(rect)
+        self.rotulo, self.explicacao = rotulo, explicacao
+        self.ler, self.alternar = ler, alternar
+        self.habilitado = True
+        self.foco = False
+        self.apertado = False
+        self.hover = 0.0
+        self.posicao = 1.0 if ler() else 0.0     # 0 = desligado, 1 = ligado (animado)
+
+    def contem(self, pos):
+        return self.rect.collidepoint(pos)
+
+    def ativar(self):
+        self.alternar()
+        return True
+
+    def atualizar(self, dt):
+        self.hover = aproximar(self.hover, 1.0 if self.foco else 0.0, dt)
+        self.posicao = aproximar(self.posicao, 1.0 if self.ler() else 0.0, dt, 160)
+
+    def desenhar(self, superficie):
+        if self.hover > 0.02:
+            fundo = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+            fundo.fill((*Palette.WHITE, int(70 * self.hover)))
+            superficie.blit(fundo, self.rect)
+        y = self.rect.centery - (9 if self.explicacao else 0)
+        desenhar_texto(superficie, self.rotulo, 30, topo_esquerdo=(self.rect.x + 14, y - 13),
+                       cor=Palette.INK, contorno=None)
+        if self.explicacao:
+            desenhar_texto(superficie, self.explicacao, 20, topo_esquerdo=(self.rect.x + 14, y + 12),
+                           cor=escurecer(Palette.PANEL_SHADE, 0.2), contorno=None)
+        trilho = pygame.Rect(0, 0, 70, 36)
+        trilho.midright = (self.rect.right - 14, self.rect.centery)
+        ligado, desligado = Palette.LOGO_GREEN, Palette.LOCKED
+        cor = tuple(round(d + (l - d) * self.posicao) for l, d in zip(ligado, desligado))
+        pygame.draw.rect(superficie, Palette.INK, trilho.move(0, 3), border_radius=18)
+        pygame.draw.rect(superficie, cor, trilho, border_radius=18)
+        pygame.draw.rect(superficie, Palette.INK, trilho, 3, border_radius=18)
+        x = trilho.x + 18 + (trilho.w - 36) * self.posicao
+        pygame.draw.circle(superficie, Palette.INK, (x, trilho.centery), 15)
+        pygame.draw.circle(superficie, Palette.WHITE, (x, trilho.centery), 12)
+        rotulo = 'ON' if self.posicao > 0.5 else 'OFF'
+        texto_estado = texto(rotulo, 18, Palette.WHITE, Palette.INK, 1)
+        lado = trilho.x + 18 if self.posicao > 0.5 else trilho.right - 18
+        superficie.blit(texto_estado, texto_estado.get_rect(center=(lado, trilho.centery)))

@@ -1,6 +1,6 @@
 # Arquitetura — Flappy Arcade
 
-Como rodar: `python src/main.py` (tela de modos) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
+Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
 
 ## Pastas
 
@@ -44,14 +44,16 @@ src/
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
     scenes/
-      mode_select.py         escolha de modo (provisória até o menu da Fase 6)
+      main_menu.py           menu principal: modos, loja, configurações, sair
+      pause_scene.py         pausa: continuar, configurações, recomeçar, sair
+      settings_scene.py      configurações (interruptores) e resetar progresso
       map_scene.py           mapa de 25 casas com rolagem
       level_scene.py         casa: abertura -> jogo -> resultado com estrelas e moedas
       shop_scene.py          loja: vitrine animada + grade de skins
       game_scene.py          conduz a sessão (clássico ou livre)
     ui/
       theme.py               paleta (tirada dos sprites), medidas, animação, fontes
-      widgets.py             texto com contorno, painel, estrela, botões com hover e teclado
+      widgets.py             texto com contorno, painel, estrela, botões, interruptores
 tests/
   golden/                    gravação do jogo original e cenários
   test_golden_master.py      regra de ouro: clássico idêntico ao original
@@ -61,6 +63,9 @@ tests/
   test_menus.py              telas de modo, mapa e casa (fluxo completo)
   test_arcade.py             jornada Arcade: tabela, sessões por casa, mapa
   test_economy.py            carteira, loja, skins, moedas; moedas/skin não mudam a física
+  test_polish.py             pausa, configurações, reset, menu, música, transições
+tools/
+  gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 
@@ -108,6 +113,13 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 - **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus de `BONUS_POR_ESTRELA_NOVA` só por estrela nova.
 - **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
 - **Preços**: comuns 50–100, raras 250–500, radicais 1000+ (`config/skins.py`, verificado por teste).
+
+## Pausa, configurações e música
+
+- **Pausa** (`P`, `ESC` ou a janela perdendo o foco) só com a partida em andamento: no menu, no cadastro e no game over do clássico as teclas fazem o que faziam. A pausa é uma cena por cima; como só o topo é atualizado, a partida congela sozinha.
+- **Configurações** abrem do menu principal e da pausa. Resetar apaga moedas, skins, estrelas e recordes do Modo Livre; mantém configurações e o ranking do clássico. O foco começa em CANCELAR.
+- **Música:** `musica_menu.wav` (menus, mapas, loja) e `musica_jogo.wav` (casas e Modo Livre). O clássico não tem música, como o original. Para mudar as músicas, edite as tabelas em `tools/gerar_musica.py` e rode `python tools/gerar_musica.py`.
+- **Transições:** ao trocar de tela, o último quadro se dissolve em ~0,2 s (`Motion.SCENE_FADE_MS`); sem efeitos visuais, a troca é seca.
 
 ## Cuidados com o pygame
 

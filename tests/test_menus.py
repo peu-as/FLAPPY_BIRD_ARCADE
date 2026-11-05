@@ -6,7 +6,7 @@ from flappy_arcade.config.constants import ALTURA, LARGURA
 from flappy_arcade.config.levels import CASAS
 from flappy_arcade.scenes.level_scene import ABERTURA, JOGANDO, RESULTADO, LevelScene
 from flappy_arcade.scenes.map_scene import MapScene, posicao_casa
-from flappy_arcade.scenes.mode_select import ModeSelectScene
+from flappy_arcade.scenes.main_menu import MainMenuScene
 
 
 @pytest.fixture
@@ -40,11 +40,11 @@ def na_tela(mapa_cena, casa):
 # ---------------------------------------------------------------- escolha de modo
 def test_tela_de_modos(ctx):
     cenas = ctx.scenes
-    cenas.push(ModeSelectScene(ctx))
+    cenas.push(MainMenuScene(ctx))
     menu = cenas.top
     quadros(menu, 5)
     rotulos = [b.rotulo for b in menu.grupo.botoes]
-    assert len(rotulos) == 7 and rotulos[-1] == 'LOJA'
+    assert rotulos[6:] == ['CONFIGURAÇÕES', 'SAIR', 'LOJA']
     assert all(b.habilitado for b in menu.grupo.botoes)
     tecla(menu, pygame.K_RETURN)                                           # 1º botão: Donkey Kong
     assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'donkey'
@@ -132,7 +132,7 @@ def test_derrota_nao_grava_e_oferece_de_novo(ctx):
 def test_todas_as_telas_desenham(ctx, mapa, efeitos):
     ctx.settings.set('visual_fx', efeitos)
     ctx.progress.registrar(mapa, 1, 2)
-    for cena in (ModeSelectScene(ctx), MapScene(ctx, mapa), LevelScene(ctx, mapa, 5)):
+    for cena in (MainMenuScene(ctx), MapScene(ctx, mapa), LevelScene(ctx, mapa, 5)):
         ctx.scenes.push(cena)
         quadros(cena, 3)
     casa = ctx.scenes.top

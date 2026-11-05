@@ -11,8 +11,9 @@ from dataclasses import dataclass
 import pygame
 
 from ..config.constants import ALTURA, LARGURA
+from ..ui.theme import Motion
 from ..gameplay.resources import Recursos
-from ..scenes.mode_select import ModeSelectScene
+from ..scenes.main_menu import MainMenuScene
 from ..systems.audio_manager import AudioManager
 from ..systems.economy import Carteira
 from ..systems.progress import ProgressStore
@@ -62,11 +63,14 @@ class App:
             clock=GameClock(), scenes=SceneManager(), progress=ProgressStore(save, bus),
             wallet=carteira, shop=Loja(save, carteira, bus))
         self.tela = pygame.Surface((LARGURA, ALTURA))
+        self._topo = None              # cena do topo no quadro anterior
+        self._foto = None              # último quadro da cena anterior (transição)
+        self._foto_inicio = 0
 
     def run(self, cena_inicial=None, max_quadros=None):
         """Roda até a pilha de cenas esvaziar. max_quadros serve aos testes."""
         cenas = self.ctx.scenes
-        cenas.push(cena_inicial or ModeSelectScene(self.ctx))
+        cenas.push(cena_inicial or MainMenuScene(self.ctx))
         relogio = pygame.time.Clock()
         quadros = 0
         try:
@@ -76,13 +80,36 @@ class App:
                 if cenas.empty:
                     break
                 cenas.update(dt)
+                if cenas.empty:
+                    break
+                self._iniciar_transicao_se_mudou()
                 cenas.draw(self.tela)
+                self._desenhar_transicao()
                 self.window.present(self.tela)
                 quadros += 1
         finally:
             cenas.clear()
             pygame.quit()
         return quadros
+
+    def _iniciar_transicao_se_mudou(self):
+        """A tela do topo mudou: guarda o último quadro (ainda em self.tela) para dissolver."""
+        topo = self.ctx.scenes.top
+        if topo is not self._topo:
+            if self._topo is not None and self.ctx.settings.visual_fx_enabled:
+                self._foto = self.tela.copy()
+                self._foto_inicio = pygame.time.get_ticks()
+            self._topo = topo
+
+    def _desenhar_transicao(self):
+        if self._foto is None:
+            return
+        t = (pygame.time.get_ticks() - self._foto_inicio) / Motion.SCENE_FADE_MS
+        if t >= 1:
+            self._foto = None
+            return
+        self._foto.set_alpha(round(255 * (1 - t)))
+        self.tela.blit(self._foto, (0, 0))
 
     def _tratar_eventos(self):
         cenas = self.ctx.scenes

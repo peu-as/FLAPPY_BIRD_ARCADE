@@ -11,6 +11,7 @@ import pygame
 
 from ..config.constants import ALTURA, LARGURA
 from ..config.skins import CORES_RARIDADE, NOMES_RARIDADE, SKINS
+from ..core.paths import MUSICA_MENU
 from ..core.scene import Scene
 from ..gameplay.coins import icone_moeda
 from ..gameplay.flappy import Passaro
@@ -55,6 +56,9 @@ class ShopScene(Scene):
         self.hover = [0.0] * len(SKINS)
         self.mouse_em = None
         self._garantir_visivel()
+
+    def on_enter(self):
+        self.ctx.audio.play_music(MUSICA_MENU, volume=0.5)
 
     # ------------------------------------------------------------ estado
     @property

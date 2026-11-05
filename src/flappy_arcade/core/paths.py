@@ -49,3 +49,7 @@ PASTA_DADOS = RAIZ_DADOS / 'data'
 ARQUIVO_RECORDE = PASTA_DADOS / 'recorde.json'   # formato antigo, só leitura
 ARQUIVO_RANKING = PASTA_DADOS / 'ranking.json'
 ARQUIVO_SAVE = PASTA_DADOS / 'save.json'         # moedas, skins, mapas, configurações
+
+# Músicas de fundo (geradas por tools/gerar_musica.py)
+MUSICA_MENU = AUDIOS / 'musica_menu.wav'
+MUSICA_JOGO = AUDIOS / 'musica_jogo.wav'

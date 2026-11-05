@@ -9,11 +9,13 @@ import pygame
 from ..config.constants import ALTURA, FPS, LARGURA
 from ..config.economy import BONUS_POR_ESTRELA_NOVA
 from ..config.levels import CAPITULOS, CASAS, MAPAS, NOMES_ESTILOS, cor_da_casa, etapa_arcade
+from ..core.paths import MUSICA_JOGO
 from ..core.scene import Scene
 from ..gameplay.coins import icone_moeda
 from ..gameplay.level_session import criar_sessao
 from ..ui.theme import Palette
-from .game_scene import preparar_recompensas
+from .game_scene import TEXTO_ATALHOS, preparar_recompensas, quer_pausar
+from .pause_scene import PauseScene
 from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, estrela, painel, texto
 
 ABERTURA, JOGANDO, RESULTADO = 'ABERTURA', 'JOGANDO', 'RESULTADO'
@@ -43,6 +45,7 @@ class LevelScene(Scene):
         self.cor = cor_da_casa(mapa, casa)
         self.session = criar_sessao(mapa, casa, ctx.resources, ctx.audio, ctx.clock)
         preparar_recompensas(self.session, ctx)
+        self.session.TEXTO_ATALHOS = TEXTO_ATALHOS
         self.depositadas = 0          # moedas (com bônus) já levadas à carteira
         self.bonus = 0
         # O banner de início da sessão (ex.: "FASE DOS PÁSSAROS!") espera o jogo
@@ -95,8 +98,11 @@ class LevelScene(Scene):
         self.depositadas += novas
         self.ctx.wallet.depositar(novas)
 
+    def on_enter(self):
+        self.ctx.audio.play_music(MUSICA_JOGO, volume=0.45)
+
     def on_exit(self):
-        self._depositar()           # saiu no meio: guarda o que já coletou
+        self._depositar()           # saiu no meio (ou abriu a pausa): guarda o que já coletou
 
     def _mapa(self):
         self.manager.pop()
@@ -117,7 +123,10 @@ class LevelScene(Scene):
                     event.type == pygame.MOUSEBUTTONDOWN and event.button == 1):
                 self._comecar()
         elif self.fase == JOGANDO:
-            if not self.session.tratar_evento(event):      # ESC
+            if quer_pausar(event, self.session):
+                self.manager.push(PauseScene(self.ctx, 'VOLTAR AO MAPA', ao_sair=self._mapa,
+                                             ao_recomecar=self._de_novo))
+            elif not self.session.tratar_evento(event):
                 self._mapa()
         else:
             if tecla == pygame.K_ESCAPE:

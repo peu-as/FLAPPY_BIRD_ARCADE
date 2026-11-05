@@ -12,6 +12,7 @@ import pygame
 
 from ..config.constants import ALTURA, LARGURA
 from ..config.levels import CAPITULOS, CASAS, INTERVALO_CHEFE, MAPAS, cor_da_casa, etapa_arcade, tem_chefe
+from ..core.paths import MUSICA_MENU
 from ..core.scene import Scene
 from ..gameplay.resources import ajustar_sprite
 from ..ui.theme import Palette
@@ -69,6 +70,7 @@ class MapScene(Scene):
 
     # ------------------------------------------------------------ estado
     def on_enter(self):
+        self.ctx.audio.play_music(MUSICA_MENU, volume=0.5)
         nova = self.ctx.progress.casa_atual(self.mapa)
         if nova != self.casa_atual:            # voltou de uma vitória que liberou casa
             self.pop[nova] = 0.0
