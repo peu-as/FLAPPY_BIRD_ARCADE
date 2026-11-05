@@ -11,8 +11,9 @@ import random
 import pygame
 
 from ..config.constants import ALTURA, LARGURA
-from ..config.levels import CASAS, MAPAS, tem_chefe
+from ..config.levels import CAPITULOS, CASAS, INTERVALO_CHEFE, MAPAS, cor_da_casa, etapa_arcade, tem_chefe
 from ..core.scene import Scene
+from ..gameplay.resources import ajustar_sprite
 from ..ui.theme import Palette
 from ..ui.widgets import Botao, aproximar, clarear, desenhar_texto, ease_out_back, escurecer, estrela, painel, texto
 
@@ -56,6 +57,14 @@ class MapScene(Scene):
         self.estrelas_fundo = [(random.uniform(0, LARGURA), random.uniform(0, ALTURA),
                                 random.uniform(0.15, 0.6), random.choice((1, 2))) for _ in range(110)]
         self.voltar = Botao((14, 16, 56, 46), '<', self._sair, 'secundario', tamanho_texto=40)
+        self.camada = pygame.Surface((LARGURA, ALTURA))      # para misturar cenários
+        r = ctx.resources
+        self.icones_estilo = {
+            'flappy': ajustar_sprite(r.passaros['dia'][1], 24),
+            'passaros': ajustar_sprite(r.especiais['Red'], 24),
+            'donkey': ajustar_sprite(r.kong['parado'], 24),
+            'galaga': ajustar_sprite(next(iter(r.inimigos.values())), 24),
+        }
         self._montar_caminho()
 
     # ------------------------------------------------------------ estado
@@ -82,7 +91,7 @@ class MapScene(Scene):
         progresso = self.ctx.progress
         for i in range(CASAS - 1):
             feito = progresso.concluida(self.mapa, i + 1)
-            cor = clarear(self.info.cor, 0.55) if feito else Palette.PANEL_LIGHT
+            cor = clarear(cor_da_casa(self.mapa, i + 1), 0.55) if feito else Palette.PANEL_LIGHT
             amostras = [_catmull_rom(*estendidos[i:i + 4], t / 24) for t in range(25)]
             for x, y in amostras:
                 pygame.draw.circle(sup, Palette.INK, (round(x), round(y)), 15)
@@ -90,7 +99,24 @@ class MapScene(Scene):
                 pygame.draw.circle(sup, cor, (round(x), round(y)), 11)
             for x, y in amostras[3:-3:4]:
                 pygame.draw.circle(sup, escurecer(cor, 0.25), (round(x), round(y)), 3)
+        if self.mapa == 'arcade':
+            self._desenhar_placas(sup)
         self.caminho = sup
+
+    def _desenhar_placas(self, sup):
+        """Placa de cada capítulo da jornada, ao lado da primeira casa dele."""
+        for numero, capitulo in enumerate(CAPITULOS, start=1):
+            casa = (numero - 1) * INTERVALO_CHEFE + 1
+            x, y = posicao_casa(casa)
+            rotulo = texto(f'CAPÍTULO {numero}', 18, Palette.INK, None)
+            nome = texto(capitulo.titulo, 26, Palette.WHITE, Palette.INK, 2)
+            placa = pygame.Rect(0, 0, max(rotulo.get_width(), nome.get_width()) + 28, 62)
+            placa.center = (x - 170 if x > LARGURA / 2 else x + 170, y + 18)
+            placa.clamp_ip(pygame.Rect(8, 0, LARGURA - 16, ALTURA_MUNDO))
+            pygame.draw.rect(sup, Palette.INK, (placa.centerx - 4, placa.bottom, 8, 26))   # poste
+            painel(sup, placa, capitulo.cor, sombra=4)
+            sup.blit(rotulo, rotulo.get_rect(center=(placa.centerx, placa.y + 17)))
+            sup.blit(nome, nome.get_rect(center=(placa.centerx, placa.y + 41)))
 
     def _sair(self):
         self.manager.pop()
@@ -191,10 +217,27 @@ class MapScene(Scene):
         self._desenhar_rodape(surface)
 
     def _desenhar_fundo(self, surface, efeitos):
+        if self.mapa != 'arcade':
+            self._pintar(surface, {'flappy': 'dia', 'donkey': 'selva', 'galaga': 'espaco'}[self.mapa], efeitos)
+            return
+        # Jornada: o cenário acompanha o capítulo no meio da tela, com uma
+        # transição suave perto da divisa entre dois capítulos.
+        y_meio = self.rolagem + ALTURA / 2
+        indice = (ALTURA_MUNDO - MARGEM_BAIXO - y_meio) / ESPACO_CASAS        # casa - 1, contínuo
+        posicao = max(0.0, min(len(CAPITULOS) - 1.0, (indice + 0.5) / INTERVALO_CHEFE - 0.5))
+        atual = int(posicao)
+        mistura = max(0.0, min(1.0, (posicao - atual - 0.6) / 0.4))
+        self._pintar(surface, CAPITULOS[atual].fundo, efeitos)
+        if mistura > 0 and atual + 1 < len(CAPITULOS):
+            self._pintar(self.camada, CAPITULOS[atual + 1].fundo, efeitos)
+            self.camada.set_alpha(round(255 * mistura))
+            surface.blit(self.camada, (0, 0))
+
+    def _pintar(self, surface, cenario, efeitos):
         r = self.ctx.resources
-        if self.mapa == 'flappy':
-            surface.blit(r.fundos['bg'], (0, 0))
-        elif self.mapa == 'donkey':
+        if cenario in ('dia', 'tarde', 'noite'):
+            surface.blit(r.fundos[{'dia': 'bg', 'tarde': 'bg1', 'noite': 'night'}[cenario]], (0, 0))
+        elif cenario == 'selva':
             surface.blit(r.fundo_selva, (0, 0))
             # palmeiras em tela cheia: deslizam de leve com a rolagem (paralaxe)
             sobra = ALTURA_MUNDO - ALTURA
@@ -214,6 +257,7 @@ class MapScene(Scene):
         chefe = tem_chefe(casa)
         liberada = progresso.liberada(self.mapa, casa)
         feitas = progresso.estrelas(self.mapa, casa)
+        cor_casa = cor_da_casa(self.mapa, casa)
         atual = casa == self.casa_atual and liberada and not feitas
         raio = (RAIO_CHEFE if chefe else RAIO_CASA) * (1 + 0.12 * self.hover[casa])
         if casa in self.pop:
@@ -226,7 +270,7 @@ class MapScene(Scene):
         elif atual:
             cor = Palette.BIRD_YELLOW
         elif feitas:
-            cor = self.info.cor
+            cor = cor_casa
         else:
             cor = Palette.PANEL_LIGHT
         pygame.draw.circle(surface, Palette.INK, (cx, cy + 5), raio + 3)               # sombra
@@ -241,6 +285,8 @@ class MapScene(Scene):
             self._desenhar_cadeado(surface, cx, cy)
         if chefe:
             self._desenhar_coroa(surface, cx, cy - raio - 10, liberada)
+        if self.mapa == 'arcade':
+            self._desenhar_selo_estilo(surface, cx + raio * 0.8, cy - raio * 0.62, casa)   # canto de cima: longe das estrelas
         if feitas:
             for i in range(3):
                 estrela(surface, (cx + (i - 1) * 21, cy + raio + 13 - (5 if i == 1 else 0)), 11, i < feitas)
@@ -248,6 +294,13 @@ class MapScene(Scene):
             quadro = self.ctx.resources.passaros['dia'][int(self.tempo * 9) % 3]
             sobe = math.sin(self.tempo * 3) * 6 if efeitos else 0
             surface.blit(quadro, quadro.get_rect(center=(cx, cy - raio - (66 if chefe else 30) + sobe)))  # acima da coroa
+
+    def _desenhar_selo_estilo(self, surface, x, y, casa):
+        """Selo com o ícone do estilo da casa (aparece até nas bloqueadas)."""
+        pygame.draw.circle(surface, Palette.INK, (x, y), 17)
+        pygame.draw.circle(surface, Palette.PANEL_LIGHT, (x, y), 14)
+        icone = self.icones_estilo[etapa_arcade(casa).estilo]
+        surface.blit(icone, icone.get_rect(center=(x, y)))
 
     def _desenhar_cadeado(self, surface, cx, cy):
         corpo = pygame.Rect(0, 0, 22, 17)

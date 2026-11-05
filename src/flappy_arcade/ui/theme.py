@@ -70,12 +70,34 @@ class Motion:
 
 
 class Fonts:
-    """Fontes em cache: criar Font a cada quadro é caro."""
+    """Fontes em cache: criar Font a cada quadro é caro.
+
+    Uma Font só vale enquanto o pygame estiver ligado: ao desligá-lo
+    (pygame.quit), o cache é esvaziado automaticamente. Usar uma fonte antiga
+    depois de religar o pygame derrubaria o programa.
+    """
 
     _cache = {}
+    _ganchos = []          # funções extras a chamar quando o pygame desligar
+    _registrado = False
 
     @classmethod
     def get(cls, tamanho):
+        if not cls._registrado:
+            pygame.register_quit(cls.limpar)
+            cls._registrado = True
         if tamanho not in cls._cache:
             cls._cache[tamanho] = pygame.font.Font(None, tamanho)
         return cls._cache[tamanho]
+
+    @classmethod
+    def ao_limpar(cls, funcao):
+        """Registra outra limpeza ligada às fontes (ex.: cache de textos)."""
+        cls._ganchos.append(funcao)
+
+    @classmethod
+    def limpar(cls):
+        cls._cache.clear()
+        cls._registrado = False      # pygame.quit esvazia a lista de ganchos dele
+        for funcao in cls._ganchos:
+            funcao()

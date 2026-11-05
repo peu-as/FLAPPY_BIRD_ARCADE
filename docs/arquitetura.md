@@ -18,7 +18,7 @@ src/
     config/
       constants.py           física, dificuldade, fases (valores originais)
       difficulty_profiles.py curva de 25 níveis: Rampa/Degraus por parâmetro
-      levels.py              mapas de 25 casas: nomes, cores, metas, chefões, estrelas
+      levels.py              mapas de 25 casas + jornada Arcade (capítulos e etapas)
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
@@ -29,7 +29,7 @@ src/
     gameplay/                o jogo original, reorganizado
       classic_session.py     estados, ciclo de níveis, entrada e telas
       free_mode.py           Modo Livre: sem vidas, dificuldade pelo tempo
-      level_session.py       casas dos mapas (Flappy, Galaga, Donkey): 3 vidas, estrelas
+      level_session.py       casas dos mapas: 3 vidas, estrelas; criar_sessao(mapa, casa)
       flappy.py              Passaro, Obstaculo, Chao
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
@@ -52,6 +52,7 @@ tests/
   test_free_mode.py          regras e HUD do Modo Livre
   test_levels.py             regras das casas e do progresso
   test_menus.py              telas de modo, mapa e casa (fluxo completo)
+  test_arcade.py             jornada Arcade: tabela, sessões por casa, mapa
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 
@@ -88,6 +89,14 @@ Sem cadastro, ranking ou game over. Bater conta uma queda e o pássaro volta com
 ## Mapas
 
 Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva. As casas são sessões que herdam da `ClassicSession`, então a física e as fases são as do original. Chefão nas casas 5, 10, 15, 20 e 25 (no Flappy, a fase dos pássaros), ligado por `cfg['chefe']`. Estrelas: 3 sem perder vida, 2 perdendo uma, 1 perdendo duas. Tempo esgotado na Galaga ou no Donkey é derrota. A casa N + 1 abre quando a N tem estrela.
+
+## Jornada Arcade
+
+`JORNADA` em `config/levels.py` é uma tabela de 5 capítulos (Céus, Selva, Entardecer, Noite, Espaço) com 5 casas cada; `'*'` marca o chefão, sempre na 5ª casa. Estilos: `flappy`, `passaros`, `donkey`, `galaga`. A casa N usa o nível N da curva, seja qual for o estilo. No mapa, o cenário de fundo acompanha o capítulo, cada casa tem um selo com o ícone do estilo e placas marcam os capítulos. Para mudar a jornada, edite a tabela: os testes conferem chefões no lugar certo, estilos misturados e nada repetido três vezes seguidas.
+
+## Cuidados com o pygame
+
+Fontes (`ui/theme.py: Fonts`) e textos prontos (`ui/widgets.py`) ficam em cache e são esvaziados sozinhos no `pygame.quit()` (`pygame.register_quit`). Nunca guarde uma `Font` em variável global fora desse cache.
 
 ## Save (`data/save.json`)
 

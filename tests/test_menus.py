@@ -45,15 +45,16 @@ def test_tela_de_modos(ctx):
     quadros(menu, 5)
     rotulos = [b.rotulo for b in menu.grupo.botoes]
     assert len(rotulos) == 6
-    assert [b.habilitado for b in menu.grupo.botoes][3] is False          # Arcade: Fase 4
+    assert all(b.habilitado for b in menu.grupo.botoes)
     tecla(menu, pygame.K_RETURN)                                           # 1º botão: Donkey Kong
     assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'donkey'
     tecla(cenas.top, pygame.K_ESCAPE)
     assert cenas.top is menu
-    tecla(menu, pygame.K_DOWN)
-    tecla(menu, pygame.K_DOWN)
-    tecla(menu, pygame.K_DOWN)                                             # pula o desabilitado
-    assert menu.grupo.botoes[menu.grupo.indice].rotulo == 'MODO LIVRE'
+    for _ in range(3):
+        tecla(menu, pygame.K_DOWN)
+    assert menu.grupo.botoes[menu.grupo.indice].rotulo == 'ARCADE (HISTÓRIA)'
+    tecla(menu, pygame.K_RETURN)
+    assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'arcade'
 
 
 # ---------------------------------------------------------------- mapa
@@ -63,7 +64,7 @@ def test_casas_do_mapa_cabem_na_tela_e_sobem_em_ordem():
     assert all(b[1] < a[1] for a, b in zip(posicoes, posicoes[1:]))
 
 
-@pytest.mark.parametrize('mapa', ['donkey', 'galaga', 'flappy'])
+@pytest.mark.parametrize('mapa', ['donkey', 'galaga', 'flappy', 'arcade'])
 def test_mapa_abre_so_casas_liberadas(ctx, mapa):
     ctx.scenes.push(MapScene(ctx, mapa))
     cena = ctx.scenes.top
@@ -127,7 +128,7 @@ def test_derrota_nao_grava_e_oferece_de_novo(ctx):
 
 
 @pytest.mark.parametrize('efeitos', [True, False])
-@pytest.mark.parametrize('mapa', ['donkey', 'galaga', 'flappy'])
+@pytest.mark.parametrize('mapa', ['donkey', 'galaga', 'flappy', 'arcade'])
 def test_todas_as_telas_desenham(ctx, mapa, efeitos):
     ctx.settings.set('visual_fx', efeitos)
     ctx.progress.registrar(mapa, 1, 2)

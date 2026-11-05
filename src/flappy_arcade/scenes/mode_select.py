@@ -1,7 +1,7 @@
 """Tela de escolha de modo (provisória até o menu principal da Fase 6).
 
-Mapas Donkey Kong, Galaga e Flappy, Modo Livre e o jogo clássico original.
-O modo Arcade (história) chega na Fase 4.
+Mapas Donkey Kong, Galaga e Flappy, a jornada Arcade, o Modo Livre e o jogo
+clássico original.
 """
 import math
 
@@ -56,8 +56,10 @@ class ModeSelectScene(Scene):
             total = f'{progresso.total(mapa)}/{progresso.maximo()}'
             botao(i, MAPAS[mapa].subtitulo.upper(), lambda m=mapa: self._abrir_mapa(m), mapa,
                   total, estrela_=True)
-        botao(3, 'ARCADE (HISTÓRIA)', None, 'arcade', 'em breve', habilitado=False)
-        botao(4, 'MODO LIVRE', lambda: self._jogar('livre'), 'livre', 'treino', estilo='destaque')
+        jornada = f'{progresso.total("arcade")}/{progresso.maximo()}'
+        botao(3, 'ARCADE (HISTÓRIA)', lambda: self._abrir_mapa('arcade'), 'arcade', jornada,
+              estilo='destaque', estrela_=True)
+        botao(4, 'MODO LIVRE', lambda: self._jogar('livre'), 'livre', 'treino')
         botao(5, 'CLÁSSICO', lambda: self._jogar('classico'), 'classico', 'original', estilo='secundario')
         return botoes
 

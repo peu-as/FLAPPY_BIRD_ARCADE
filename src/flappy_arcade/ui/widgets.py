@@ -14,6 +14,7 @@ import pygame
 from .theme import Fonts, Metrics, Motion, Palette
 
 _CACHE_TEXTO = {}
+Fonts.ao_limpar(_CACHE_TEXTO.clear)     # textos prontos somem junto com as fontes
 
 
 def texto(conteudo, tamanho, cor=Palette.WHITE, contorno=Palette.INK, espessura=2):

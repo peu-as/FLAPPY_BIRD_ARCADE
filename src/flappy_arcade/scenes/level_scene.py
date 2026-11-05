@@ -7,9 +7,9 @@ e os botões do resultado (mapa, de novo, próxima).
 import pygame
 
 from ..config.constants import ALTURA, FPS, LARGURA
-from ..config.levels import CASAS, MAPAS
+from ..config.levels import CAPITULOS, CASAS, MAPAS, NOMES_ESTILOS, cor_da_casa, etapa_arcade
 from ..core.scene import Scene
-from ..gameplay.level_session import SESSOES_POR_MAPA
+from ..gameplay.level_session import criar_sessao
 from ..ui.theme import Palette
 from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, estrela, painel, texto
 
@@ -37,7 +37,11 @@ class LevelScene(Scene):
         super().__init__(ctx)
         self.mapa, self.casa = mapa, casa
         self.info = MAPAS[mapa]
-        self.session = SESSOES_POR_MAPA[mapa](ctx.resources, ctx.audio, ctx.clock, casa)
+        self.cor = cor_da_casa(mapa, casa)
+        self.session = criar_sessao(mapa, casa, ctx.resources, ctx.audio, ctx.clock)
+        # O banner de início da sessão (ex.: "FASE DOS PÁSSAROS!") espera o jogo
+        # começar, em vez de ficar congelado atrás do cartão de abertura.
+        self.banner_guardado, self.session.banner_tempo = self.session.banner_tempo, 0.0
         self.fase = ABERTURA
         self.tempo_fase = 0.0
         self.melhor_antes = ctx.progress.estrelas(mapa, casa)
@@ -50,6 +54,7 @@ class LevelScene(Scene):
     # ------------------------------------------------------------ transições
     def _comecar(self):
         self.fase, self.tempo_fase = JOGANDO, 0.0
+        self.session.banner_tempo = self.banner_guardado
 
     def _terminar(self):
         s = self.session
@@ -131,7 +136,7 @@ class LevelScene(Scene):
 
     def _cabecalho(self, surface, cartao):
         faixa = pygame.Rect(cartao.x, cartao.y, cartao.w, 64)
-        painel(surface, faixa, self.info.cor, sombra=0)
+        painel(surface, faixa, self.cor, sombra=0)
         desenhar_texto(surface, f'CASA {self.casa}', 46, (cartao.centerx, faixa.centery + 1), espessura=3)
         if self.session.chefe:
             selo = pygame.Rect(0, 0, 112, 34)
@@ -139,12 +144,20 @@ class LevelScene(Scene):
             painel(surface, selo, Palette.DANGER, sombra=3)
             desenhar_texto(surface, 'CHEFÃO!', 24, selo.center, espessura=2)
 
+    def subtitulo(self):
+        """Linha abaixo de "CASA N": o mapa, ou o capítulo e o estilo na jornada."""
+        if self.mapa != 'arcade':
+            return self.info.titulo
+        etapa = etapa_arcade(self.casa)
+        capitulo = CAPITULOS[etapa.capitulo - 1].titulo
+        return f'CAPÍTULO {etapa.capitulo}: {capitulo}  -  {NOMES_ESTILOS[etapa.estilo].upper()}'
+
     def _desenhar_abertura(self, surface):
         cartao = pygame.Rect(0, 0, 470, 330)
         cartao.center = (LARGURA // 2, ALTURA // 2 - 20)
         painel(surface, cartao, Palette.PANEL)
         self._cabecalho(surface, cartao)
-        desenhar_texto(surface, self.info.titulo, 24, (cartao.centerx, cartao.y + 86), Palette.INK, contorno=None)
+        desenhar_texto(surface, self.subtitulo(), 24, (cartao.centerx, cartao.y + 86), Palette.INK, contorno=None)
         y = cartao.y + 124
         for linha in _quebrar(self.session.objetivo, 32, cartao.w - 50):
             desenhar_texto(surface, linha, 32, (cartao.centerx, y), Palette.WHITE, espessura=2)

@@ -12,6 +12,7 @@ from ..config.levels import (
     CASAS,
     VIDAS_POR_CASA,
     estrelas_por_danos,
+    etapa_arcade,
     meta_flappy,
     tem_chefe,
 )
@@ -42,9 +43,9 @@ class DificuldadeDaCasa:
 class LevelSession(ClassicSession):
     """Base das casas. As subclasses dizem como o desafio começa e termina."""
 
-    def __init__(self, recursos, audio, clock, casa):
+    def __init__(self, recursos, audio, clock, casa, chefe=None):
         self.casa = max(1, min(CASAS, casa))
-        self.chefe = tem_chefe(self.casa)
+        self.chefe = tem_chefe(self.casa) if chefe is None else chefe
         self.dificuldade = DificuldadeDaCasa(self.chefe)
         super().__init__(recursos, audio, clock)
 
@@ -118,10 +119,16 @@ class LevelSession(ClassicSession):
 
 
 class FlappyLevelSession(LevelSession):
-    """Passar por N canos; nas casas de chefão, pela fase dos pássaros."""
+    """Passar por N canos, ou pela fase dos pássaros (no mapa Flappy, a fase
+    dos pássaros é o chefão; na jornada Arcade ela aparece por conta própria)."""
+
+    def __init__(self, recursos, audio, clock, casa, chefe=None, passaros=None):
+        chefe = tem_chefe(casa) if chefe is None else chefe
+        self.passaros = chefe if passaros is None else passaros
+        super().__init__(recursos, audio, clock, casa, chefe)
 
     def comecar(self):
-        if self.chefe:
+        if self.passaros:
             self.iniciar_fase_passaros()
             self.meta = self.fim_passaros_em
         else:
@@ -131,7 +138,7 @@ class FlappyLevelSession(LevelSession):
     @property
     def objetivo(self):
         meta = self.meta - self.pontos
-        return f'Passe por {meta} pássaros' if self.chefe else f'Passe por {meta} canos'
+        return f'Passe por {meta} pássaros' if self.passaros else f'Passe por {meta} canos'
 
     def verificar_gatilhos(self):
         if self.estado == 'JOGO' and self.pontos >= self.meta:
@@ -179,3 +186,14 @@ SESSOES_POR_MAPA = {
     'galaga': GalagaLevelSession,
     'donkey': DonkeyLevelSession,
 }
+
+
+def criar_sessao(mapa, casa, recursos, audio, clock):
+    """A sessão certa para a casa: pelo mapa, ou pela etapa da jornada Arcade."""
+    if mapa != 'arcade':
+        return SESSOES_POR_MAPA[mapa](recursos, audio, clock, casa)
+    etapa = etapa_arcade(casa)
+    if etapa.estilo in ('flappy', 'passaros'):
+        return FlappyLevelSession(recursos, audio, clock, casa, chefe=etapa.chefe,
+                                  passaros=etapa.estilo == 'passaros')
+    return SESSOES_POR_MAPA[etapa.estilo](recursos, audio, clock, casa, chefe=etapa.chefe)

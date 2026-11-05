@@ -41,5 +41,63 @@ MAPAS = {
     'donkey': Mapa('donkey', 'SELVA DO KONG', 'Donkey Kong', (214, 128, 44)),
     'galaga': Mapa('galaga', 'ESQUADRILHA GALAGA', 'Galaga', (96, 128, 236)),
     'flappy': Mapa('flappy', 'CÉUS DO FLAPPY', 'Flappy clássico', (80, 160, 40)),
+    'arcade': Mapa('arcade', 'A GRANDE JORNADA', 'Arcade (história)', (200, 84, 200)),
 }
-ORDEM_MAPAS = ('donkey', 'galaga', 'flappy')
+ORDEM_MAPAS = ('donkey', 'galaga', 'flappy')     # mapas de um estilo só
+
+
+# ------------------------------------------------------------------ Arcade
+# A jornada mistura os quatro estilos em 5 capítulos de 5 casas. Cada capítulo
+# tem um cenário e termina num chefão. Para mudar a jornada, edite JORNADA.
+NOMES_ESTILOS = {
+    'flappy': 'Flappy',
+    'passaros': 'Fase dos pássaros',
+    'donkey': 'Donkey Kong',
+    'galaga': 'Galaga',
+}
+
+
+@dataclass(frozen=True)
+class Capitulo:
+    titulo: str
+    fundo: str               # 'dia', 'selva', 'tarde', 'noite' ou 'espaco'
+    cor: tuple
+
+
+@dataclass(frozen=True)
+class Etapa:
+    estilo: str              # chave de NOMES_ESTILOS
+    chefe: bool
+    capitulo: int            # 1 a 5
+
+
+CAPITULOS = (
+    Capitulo('CÉUS', 'dia', (80, 160, 40)),
+    Capitulo('SELVA', 'selva', (214, 128, 44)),
+    Capitulo('ENTARDECER', 'tarde', (232, 112, 60)),
+    Capitulo('NOITE', 'noite', (96, 128, 236)),
+    Capitulo('ESPAÇO', 'espaco', (200, 84, 200)),
+)
+
+# Uma linha por capítulo; '*' marca o chefão (sempre a 5ª casa do capítulo).
+JORNADA = (
+    ('flappy', 'flappy', 'donkey', 'flappy', 'donkey*'),
+    ('galaga', 'flappy', 'donkey', 'passaros', 'galaga*'),
+    ('donkey', 'galaga', 'flappy', 'donkey', 'passaros*'),
+    ('galaga', 'passaros', 'donkey', 'galaga', 'donkey*'),
+    ('flappy', 'donkey', 'galaga', 'passaros', 'galaga*'),
+)
+
+
+def etapa_arcade(casa):
+    """Estilo, chefão e capítulo da casa N da jornada."""
+    capitulo, posicao = divmod(casa - 1, INTERVALO_CHEFE)
+    nome = JORNADA[capitulo][posicao]
+    return Etapa(nome.rstrip('*'), nome.endswith('*'), capitulo + 1)
+
+
+def cor_da_casa(mapa, casa):
+    """Cor de destaque da casa: a do mapa, ou a do capítulo na jornada."""
+    if mapa == 'arcade':
+        return CAPITULOS[etapa_arcade(casa).capitulo - 1].cor
+    return MAPAS[mapa].cor
