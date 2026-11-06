@@ -14,6 +14,7 @@ from ..config.constants import LARGURA, TEMPO_INVULNERAVEL_MS
 from ..config.debug import TECLAS_DESCE_NIVEL, TECLAS_SOBE_NIVEL
 from ..config.difficulty_profiles import LIVRE_SEGUNDOS_POR_NIVEL, NIVEIS
 from .classic_session import ClassicSession
+from .bonus_visuals import SessaoComBonusNovos
 from .coins import SessaoComMoedas
 from .scenery import SessaoComCenarios
 from .difficulty_curve import CurvaDificuldade
@@ -24,7 +25,7 @@ COR_TITULO = (255, 225, 90)      # mesmo amarelo do HUD clássico
 COR_TEXTO = (230, 230, 240)
 
 
-class FreeSession(SessaoComCenarios, SessaoComMoedas, ClassicSession):
+class FreeSession(SessaoComBonusNovos, SessaoComCenarios, SessaoComMoedas, ClassicSession):
     dificuldade = CurvaDificuldade()
     NIVEL_MAXIMO_CICLO = float('inf')    # ciclos sem fim
 

@@ -4,6 +4,7 @@ import math
 import pygame
 
 from ..config.constants import ALTURA, TIPOS_BONUS
+from ..ui.theme import Fonts
 
 
 # As fases (FaseGalaga e FaseDonkey) continuam falando com a sessão só por sons, dano,
@@ -41,7 +42,6 @@ class CapsulaBonus:
     Na Galaga cai devagar (vy > 0); no Donkey acompanha a rolagem (vx < 0). As
     velocidades são em px/s, como na fase Galaga."""
     RAIO = 17
-    fonte = None            # criada na primeira vez que é desenhada
 
     def __init__(self, tipo, x, y, vx=0.0, vy=0.0):
         self.tipo = tipo
@@ -61,11 +61,12 @@ class CapsulaBonus:
 
     def desenhar(self, tela, tempo):
         cor, letra, _ = TIPOS_BONUS[self.tipo]
-        if CapsulaBonus.fonte is None:
-            CapsulaBonus.fonte = pygame.font.Font(None, 26)
+        # Fonte do cache (esvaziado no pygame.quit): uma Font guardada na classe
+        # ficaria inválida se o pygame fosse desligado e religado, e derrubaria o jogo.
+        fonte = Fonts.get(26)
         centro = (int(self.x), int(self.y + 3*math.sin(tempo*6)))      # flutua um pouco
         pygame.draw.circle(tela, cor, centro, self.RAIO + 4 + int(2*math.sin(tempo*9)), 2)  # halo pulsante
         pygame.draw.circle(tela, cor, centro, self.RAIO)
         pygame.draw.circle(tela, (255, 255, 255), centro, self.RAIO, 2)
-        letra_img = CapsulaBonus.fonte.render(letra, True, (20, 20, 40))
+        letra_img = fonte.render(letra, True, (20, 20, 40))
         tela.blit(letra_img, letra_img.get_rect(center=centro))

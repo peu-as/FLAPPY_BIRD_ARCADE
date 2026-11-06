@@ -975,7 +975,7 @@ class FaseGalaga:
     def dica(self):
         """Instrução exibida no começo de cada estágio ('' = nada)."""
         if self.aviso_bonus_t > 0:                 # dica do bônus recém-coletado
-            return self.aviso_bonus
+            return self.estilo_bonus.nome(self.aviso_bonus) if self.estilo_bonus else self.aviso_bonus
         if self.estagio == 'FORMACAO' and self.tempo < 5:
             return 'SETAS ou A/D: mover | ESPACO ou clique: atirar'
         if self.estagio == 'CHEFE' and self.tempo_estagio < 5:
@@ -983,6 +983,7 @@ class FaseGalaga:
         return ''
 
     cenario = None      # CenarioNaFase nas sessões com cenários comprados (o clássico não tem)
+    estilo_bonus = None  # EstiloBonus nos modos novos (o clássico mantém as cápsulas)
 
     def desenhar_fundo(self, tela):
         if self.cenario is None:
@@ -1008,7 +1009,10 @@ class FaseGalaga:
             explosao.desenhar(tela)
         # A nave pisca (aparece/some) enquanto está invulnerável.
         # Com o Caça Gêmeo são duas naves lado a lado; com o Turbo ganham chamas.
-        if self.invulneravel <= 0 or int(self.invulneravel*10) % 2 == 0:
+        estilo = self.estilo_bonus
+        if (self.invulneravel <= 0 or int(self.invulneravel*10) % 2 == 0) and estilo:
+            estilo.desenhar_naves(self, tela)      # modos novos: ala azulado e rastro de fogo
+        elif self.invulneravel <= 0 or int(self.invulneravel*10) % 2 == 0:
             for dx in ((-DESLOC_GEMEO, DESLOC_GEMEO) if self.gemeo else (0,)):
                 tela.blit(self.recursos.nave, self.retangulo_nave().move(dx, 0))
                 if self.efeitos.ativo('TURBO'):
@@ -1017,8 +1021,15 @@ class FaseGalaga:
                     pygame.draw.polygon(tela, (255, 160, 40), [(x-9, y), (x+9, y), (x, y+comprimento)])
                     pygame.draw.polygon(tela, (255, 240, 130), [(x-4, y), (x+4, y), (x, y+comprimento*0.6)])
         for capsula in self.capsulas:
-            capsula.desenhar(tela, self.tempo)
-        if self.onda_bomba > 0:
+            if estilo:
+                estilo.desenhar_item(tela, capsula, self.tempo)
+            else:
+                capsula.desenhar(tela, self.tempo)
+        if estilo:
+            if self.onda_bomba > 0:
+                estilo.desenhar_onda(self, tela)
+            estilo.desenhar_cascas(tela)
+        elif self.onda_bomba > 0:
             # Bomba Nova: um anel de choque cresce a partir da nave e a tela "pisca" em branco.
             progresso = 1 - self.onda_bomba/0.5
             cx, cy = self.centro_bomba
@@ -1033,4 +1044,6 @@ class FaseGalaga:
             linhas.append((f'{nome} {restante:0.0f}s', TIPOS_BONUS[nome][0]))
         if self.esfriando > 0:
             linhas.append(('SUPERAQUECIDO!', (255, 90, 90)))
+        if estilo:
+            linhas = [(estilo.nome(texto), cor) for texto, cor in linhas]
         desenhar_hud_bonus(tela, linhas)

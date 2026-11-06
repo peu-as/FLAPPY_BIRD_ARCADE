@@ -44,6 +44,7 @@ src/
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
       powerups.py, effects.py, hud.py
+      bonus_visuals.py       visual novo dos bônus nos modos novos (itens, efeitos e nomes)
       difficulty.py          tabelas originais (10 níveis) + justiça das passagens
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
@@ -74,6 +75,7 @@ tests/
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
   test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
+  test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
 tools/
@@ -154,6 +156,20 @@ Modo Livre, mapas e jornada usam os cenários do jogador no Flappy; o clássico 
 - **Galaga ("Decolagem")**: o horizonte do cenário fica embaixo e se dissolve no espaço original; a formação continua voando no espaço puro. No chefão, o mundo escurece mais em 1 s. **Donkey ("Selva sobre o seu mundo")**: o cenário substitui o céu, tingido de selva à noite, atrás das duas camadas de palmeiras; rola a 0,05 (palmeiras a 0,15 e 0,35), espelhado para não ter emenda.
 - **Leitura garantida (exposição automática)**: cada cenário escurece só o necessário para a nave (faixa da nave) e as bananas (área de jogo do Donkey) terem contraste de pelo menos 3:1 com o fundo (`CONTRASTE_MINIMO`, o mínimo das diretrizes de acessibilidade para elementos gráficos). `tests/test_scenery.py` mede isso nos 31 cenários; cenário novo que não passar é escurecido sozinho.
 - As versões das fases são montadas uma vez (~28 ms), durante o alerta de 5 s que antecede a fase, e só as da fase da vez ficam na memória. Sem cenário (clássico), `FaseGalaga.desenhar_fundo` e `FaseDonkey.desenhar_fundo` desenham exatamente o original.
+
+## Bônus com cara nova (modos novos)
+
+O clássico mantém as cápsulas com letra. Nos modos novos, `SessaoComBonusNovos` entrega um `EstiloBonus` à Galaga e ao Donkey da vez (`fase.estilo_bonus`), e as fases chamam o estilo só para desenhar:
+
+| Bônus (lógica) | Nome novo | Item | Efeito na tela |
+|---|---|---|---|
+| GEMEO | Pena Dupla | pena azul | o ala (nave da direita) fica azulado e solta penas |
+| BOMBA | Ovo Nova | ovo rachado | dois anéis, clarão suave e casca voando |
+| TURBO | Semente-Foguete | semente com foguete | rastro de fogo saindo das naves |
+| BUMERANGUE | Cacho Bumerangue | cacho de bananas | o cacho gira e deixa um rastro amarelo |
+| MOLA | Folha-Trampolim | folha | folha sob o pássaro e anel "BOING!" a cada pulo |
+
+Os itens são pixel art desenhados por código (`DESENHOS`), do tamanho da área de coleta. Raio (`CapsulaBonus.RAIO`), durações (`TIPOS_BONUS`) e regras não mudam; os avisos e o HUD trocam os nomes na hora de mostrar (`renomear`), e a lógica guarda o texto original. As partículas usam o próprio sorteador e somem com os efeitos visuais desligados. Teste: a mesma partida na Galaga e no Donkey, com e sem o visual novo, tem física idêntica.
 
 ## Loja e Equipamentos
 

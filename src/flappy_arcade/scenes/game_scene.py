@@ -30,6 +30,7 @@ def preparar_recompensas(sessao, ctx):
     sessao.preparar_recompensas(skin=SkinVisual(ctx.shop.equipada, ctx.resources),
                                 saldo=ctx.wallet.saldo, efeitos=efeitos)
     sessao.preparar_cenarios(DiretorCenarios(ctx.scenarios.ativos(), ctx.resources.cenarios), efeitos)
+    sessao.efeitos_bonus = efeitos
 
 
 def quer_pausar(event, sessao):

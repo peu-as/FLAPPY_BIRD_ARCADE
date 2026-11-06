@@ -369,15 +369,19 @@ class FaseDonkey:
 
     def _desenhar_bonus(self, tela, passaro):
         """Cápsulas, bumerangues, mola sob o pássaro, explosões e a lista de bônus ativos."""
-        for capsula in self.capsulas:
-            capsula.desenhar(tela, self.tempo)
-        if self.efeitos.ativo('MOLA'):                  # mola verde sob o pássaro
-            ret = passaro.retangulo()
-            pontos = [(ret.centerx + (-10 if i % 2 else 10), ret.bottom + 3 + i*4) for i in range(6)]
-            pygame.draw.lines(tela, (120, 255, 140), False, pontos, 3)
-        for b in self.bumerangues:
-            giro = pygame.transform.rotate(self.recursos.banana, b['angulo'])
-            tela.blit(giro, giro.get_rect(center=(int(b['x']), int(b['y']))))
+        estilo = self.estilo_bonus
+        if estilo:
+            self._desenhar_bonus_novo(tela, passaro, estilo)
+        else:
+            for capsula in self.capsulas:
+                capsula.desenhar(tela, self.tempo)
+            if self.efeitos.ativo('MOLA'):                  # mola verde sob o pássaro
+                ret = passaro.retangulo()
+                pontos = [(ret.centerx + (-10 if i % 2 else 10), ret.bottom + 3 + i*4) for i in range(6)]
+                pygame.draw.lines(tela, (120, 255, 140), False, pontos, 3)
+            for b in self.bumerangues:
+                giro = pygame.transform.rotate(self.recursos.banana, b['angulo'])
+                tela.blit(giro, giro.get_rect(center=(int(b['x']), int(b['y']))))
         for explosao in self.explosoes:
             explosao.desenhar(tela)
         linhas = []
@@ -385,7 +389,19 @@ class FaseDonkey:
             linhas.append((f'BANANA-RANG x{self.cargas}  [X]', TIPOS_BONUS['BUMERANGUE'][0]))
         for nome, restante in self.efeitos.tempo.items():
             linhas.append((f'{nome} {restante:0.0f}s', TIPOS_BONUS[nome][0]))
+        if estilo:
+            linhas = [(estilo.nome(texto), cor) for texto, cor in linhas]
         desenhar_hud_bonus(tela, linhas)
+
+    def _desenhar_bonus_novo(self, tela, passaro, estilo):
+        """Modos novos: folha, cacho e itens em pixel art (veja bonus_visuals.py)."""
+        for capsula in self.capsulas:
+            estilo.desenhar_item(tela, capsula, self.tempo)
+        if self.efeitos.ativo('MOLA'):
+            estilo.desenhar_mola(tela, passaro)
+        else:
+            estilo.esquecer_mola()
+        estilo.desenhar_bumerangues(tela, self.bumerangues)
 
     @property
     def texto_status(self):
@@ -401,7 +417,7 @@ class FaseDonkey:
     def dica(self):
         """Instrução exibida no começo de cada estágio ('' = nada)."""
         if self.aviso_bonus_t > 0:                 # dica do bônus recém-coletado
-            return self.aviso_bonus
+            return self.estilo_bonus.nome(self.aviso_bonus) if self.estilo_bonus else self.aviso_bonus
         if self.estagio == 'TRAVESSIA' and self.tempo < 5:
             return 'ESPACO ou clique: bater asas | desvie dos barris!'
         if self.estagio == 'CHEFE' and self.tempo_chefe < 5:
@@ -720,6 +736,7 @@ class FaseDonkey:
 
     # Desenho
     cenario = None      # CenarioNaFase nas sessões com cenários comprados (o clássico não tem)
+    estilo_bonus = None  # EstiloBonus nos modos novos (o clássico mantém as cápsulas)
 
     def desenhar_fundo(self, tela):
         r = self.recursos
