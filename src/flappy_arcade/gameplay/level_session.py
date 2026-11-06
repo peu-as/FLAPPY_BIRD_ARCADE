@@ -19,6 +19,7 @@ from ..config.levels import (
 )
 from .classic_session import ClassicSession
 from .coins import SessaoComMoedas
+from .scenery import SessaoComCenarios
 from .difficulty_curve import CurvaDificuldade
 
 CURVA = CurvaDificuldade()
@@ -42,7 +43,7 @@ class DificuldadeDaCasa:
         return {**CURVA.donkey(nivel), 'chefe': self.chefe}
 
 
-class LevelSession(SessaoComMoedas, ClassicSession):
+class LevelSession(SessaoComCenarios, SessaoComMoedas, ClassicSession):
     """Base das casas. As subclasses dizem como o desafio começa e termina."""
 
     def __init__(self, recursos, audio, clock, casa, chefe=None):

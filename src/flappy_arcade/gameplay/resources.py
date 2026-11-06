@@ -118,6 +118,15 @@ class Recursos:
             'fim':'game_over.mp3', 'arcade':'game_over_arcade.mp3'
         }.items()}
         self._artes_skins = {}
+        self._cenarios = None
+
+    @property
+    def cenarios(self):
+        """Fundos dos cenários comprados (montados sob demanda, no máximo 3 na memória)."""
+        if self._cenarios is None:
+            from .scenery import GerenciadorCenarios
+            self._cenarios = GerenciadorCenarios(self)
+        return self._cenarios
 
     def arte_skin(self, nome):
         """Arte importada de assets/skins (carregada só quando alguém usa)."""

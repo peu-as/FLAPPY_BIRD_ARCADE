@@ -11,6 +11,7 @@ from ..core.paths import MUSICA_JOGO
 from ..core.scene import Scene
 from ..gameplay.classic_session import ClassicSession
 from ..gameplay.free_mode import FreeSession
+from ..gameplay.scenery import DiretorCenarios
 from ..gameplay.skins import SkinVisual
 from .pause_scene import PauseScene
 
@@ -23,10 +24,12 @@ MODOS = {
 
 
 def preparar_recompensas(sessao, ctx):
-    """Veste a skin equipada e mostra o saldo atual (sessões com moedas)."""
+    """Veste a skin equipada, mostra o saldo atual e põe os cenários do
+    jogador (fixo ou playlist) nas sessões novas. O clássico não passa por aqui."""
+    efeitos = ctx.settings.visual_fx_enabled
     sessao.preparar_recompensas(skin=SkinVisual(ctx.shop.equipada, ctx.resources),
-                                saldo=ctx.wallet.saldo,
-                                efeitos=ctx.settings.visual_fx_enabled)
+                                saldo=ctx.wallet.saldo, efeitos=efeitos)
+    sessao.preparar_cenarios(DiretorCenarios(ctx.scenarios.ativos(), ctx.resources.cenarios), efeitos)
 
 
 def quer_pausar(event, sessao):

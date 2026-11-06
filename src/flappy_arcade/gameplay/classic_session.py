@@ -904,12 +904,19 @@ class ClassicSession:
         rodape = self.fonte_tabela.render('ESPACO ou clique para reiniciar',True,(220,220,220))
         self.tela.blit(rodape,rodape.get_rect(midbottom=(LARGURA//2,y0+altura-8)))
 
+    def rotulo_tema(self):
+        return 'Tema: '+self.tema
+
+    def desenhar_fundo(self):
+        """Fundo do quadro (as sessões com cenários comprados trocam só isto)."""
+        fundo = self.recursos.fundos[self.tema if self.estado!='MENU' else 'bg']
+        self.tela.blit(pygame.transform.scale(fundo,(LARGURA,ALTURA)),(0,0))
+
     def desenhar(self):
         """Desenha o estado atual e apresenta o quadro na janela."""
         # Todas as posições abaixo usam a superfície lógica de 575 x 860.
         # Só ao final redimensionamos a imagem para a janela do usuário.
-        fundo = self.recursos.fundos[self.tema if self.estado!='MENU' else 'bg']
-        self.tela.blit(pygame.transform.scale(fundo,(LARGURA,ALTURA)),(0,0))
+        self.desenhar_fundo()
         if self.estado == 'MENU':
             self.chao.desenhar(self.tela)
             logo = self.recursos.logo
@@ -1063,7 +1070,7 @@ class ClassicSession:
         elif self.especial:
             rotulo = 'FASE PÁSSAROS'        # veja o texto "FASE DOS PÁSSAROS!"
         else:
-            rotulo = 'Tema: '+self.tema
+            rotulo = self.rotulo_tema()
         self.texto(rotulo,165,5,(255,225,90))
         if self.modo_teste_usado:
             self.texto('[TESTE]',LARGURA//2,34,(255,110,110),centro=True)   # partida de teste

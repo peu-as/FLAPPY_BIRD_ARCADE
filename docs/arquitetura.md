@@ -38,7 +38,8 @@ src/
       level_session.py       casas dos mapas: 3 vidas, estrelas; criar_sessao(mapa, casa)
       coins.py               moedas no jogo (ColetorMoedas) + mixin SessaoComMoedas
       skins.py               SkinVisual: desenha a skin no lugar do pássaro
-      scenery.py             cenários comprados: faixa de horizonte -> fundo de tela 575x860
+      scenery.py             cenários comprados: montar_retrato, GerenciadorCenarios (máx. 3 na
+                             memória), DiretorCenarios (fixo/aleatório) e mixin SessaoComCenarios
       flappy.py              Passaro, Obstaculo, Chao
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
@@ -69,6 +70,7 @@ tests/
   test_polish.py             pausa, configurações, reset, menu, música, transições
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
+  test_scenery.py            cenários nas fases: memória, trocas, transição, física idêntica
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
@@ -135,6 +137,16 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 As folhas ficam em `artes/` (`skins.png`, `times.png`, `cenarios.png`). O importador recorta cada personagem, tira o fundo (o que encosta na borda e os bolsões fechados da mesma cor), reduz para a grade de pixels do jogo (36 px de largura, 24 cores) e amplia 2x sem borrar; todos da mesma folha na mesma escala, alinhados pelo corpo. Cenários viram faixas de horizonte de 575 px; no jogo, `montar_retrato` apoia a faixa no chão e estende o céu com as cores do topo dela.
 
 Para acrescentar artes: ponha a folha em `artes/`, acrescente os nomes na tabela do importador (esquerda -> direita, cima -> baixo) e rode `python tools/importar_artes.py --previa previa.png` (precisa de `pip install -r requirements-dev.txt`). O relatório avisa tamanhos fora do padrão; `tests/test_assets.py` confere que tudo carrega. Personagens de terceiros (Link, Cavaleiro, Super Herói, Herói Vermelho) ficam de fora: na tabela, a posição deles é `None`.
+
+## Cenários nas fases
+
+Modo Livre, mapas e jornada usam os cenários do jogador no Flappy; o clássico continua com o ciclo de fundos do original (não herda o mixin, e o golden master confere).
+
+- `SessaoComCenarios` (mixin, antes de `SessaoComMoedas` nas sessões novas) troca só três coisas: o fundo (`desenhar_fundo`), o rótulo do topo (`rotulo_tema`) e o `tema`/`familia`, que decidem a cor dos canos e do pássaro pelo período do cenário. O tempo, a física e os sorteios dos canos são os do original; teste: a mesma partida com o ciclo original e com 15 cenários sorteados tem física idêntica por 1.500 quadros.
+- `DiretorCenarios`: no fixo, mostra um; no aleatório, troca a cada 20 s de jogo (os mesmos `TEMPO_TEMA` do original), nunca repete o anterior, dissolve em ~1 s (sem efeitos visuais, troca seca) e já monta o próximo antes da hora. Usa o próprio `random.Random`.
+- `GerenciadorCenarios` (`ctx.resources.cenarios`): monta cada fundo sob demanda (~5 ms) e guarda só 3 (atual, anterior e próximo), seja qual for o tamanho da playlist.
+- As cenas chamam `preparar_cenarios` em `preparar_recompensas` (`scenes/game_scene.py`), com `ctx.scenarios.ativos()`.
+- Galaga e Donkey desenham o próprio fundo; a adaptação dos cenários a elas é a Fase 11.
 
 ## Pausa, configurações e música
 
