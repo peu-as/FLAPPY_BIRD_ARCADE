@@ -1,8 +1,14 @@
-"""Loja de skins: vitrine com o pássaro animado + grade de cartões.
+"""Loja: abas SKINS e CENÁRIOS, filtros, vitrine com prévia combinada e grade.
 
-Comprar pede confirmação (segundo clique em até 3 s) e já equipa a skin.
+A vitrine mostra a skin voando sobre o cenário: na aba Skins, a skin escolhida
+sobre o cenário em uso; na aba Cenários, o cenário escolhido com a skin
+equipada. "Ver em" troca a prévia entre Flappy, Galaga e Donkey.
+
+Comprar pede confirmação (segundo clique em até 3 s). Skin comprada já é
+equipada; cenário comprado entra na playlist e, no modo fixo, passa a ser o fixo.
+
 Mouse: clique escolhe; roda rola a grade. Teclado: setas escolhem, ENTER
-compra/equipa, ESC volta.
+compra/usa, TAB troca de aba, Q/E trocam o filtro, V troca a vista, ESC volta.
 """
 import math
 import random
@@ -10,23 +16,31 @@ import random
 import pygame
 
 from ..config.constants import ALTURA, LARGURA
-from ..config.skins import CORES_RARIDADE, NOMES_RARIDADE, SKINS
+from ..config.scenarios import CENARIOS, MODO_FIXO, NOMES_GRUPO, NOVOS, ORIGINAIS
+from ..config.skins import CATEGORIAS, CORES_RARIDADE, NOMES_CATEGORIA, NOMES_RARIDADE, POR_CATEGORIA, POR_ID
 from ..core.paths import MUSICA_MENU
 from ..core.scene import Scene
 from ..gameplay.coins import icone_moeda
-from ..gameplay.flappy import Passaro
-from ..gameplay.skins import SkinVisual
+from ..systems.scenarios import PLAYLIST_CHEIA, ULTIMO_DA_PLAYLIST
 from ..systems.shop import OK
 from ..ui.theme import Palette
-from ..ui.widgets import Botao, aproximar, clarear, desenhar_texto, painel, texto
+from ..ui.widgets import Botao, aproximar, desenhar_texto, painel, texto
+from .vitrine import (CORES_PERIODO, NOMES_PERIODO, NOMES_VISTA, TAMANHO_PREVIA, VISTAS, FilaMiniaturas,
+                      Vitrine, desenhar_cartao_cenario, texto_que_cabe)
 
+SKINS_ABA, CENARIOS_ABA = 'skins', 'cenarios'
+FILTROS = {SKINS_ABA: CATEGORIAS, CENARIOS_ABA: (ORIGINAIS, NOVOS)}
 ALTURA_TOPO = 78
-VITRINE = pygame.Rect(0, ALTURA_TOPO, LARGURA, 262)
+Y_ABAS, ALTURA_ABA = 86, 40
+VITRINE = pygame.Rect(0, Y_ABAS + ALTURA_ABA + 6, LARGURA, 246)
+PREVIA = pygame.Rect(18, VITRINE.y + 10, *TAMANHO_PREVIA)
+X_INFO = PREVIA.right + 22
+Y_FILTROS = VITRINE.bottom + 4
 COLUNAS, CARTAO_L, CARTAO_A, ESPACO = 3, 172, 150, 12
 X_GRADE = (LARGURA - (COLUNAS * CARTAO_L + (COLUNAS - 1) * ESPACO)) // 2
-AREA_GRADE = pygame.Rect(0, VITRINE.bottom + 10, LARGURA, ALTURA - VITRINE.bottom - 10)
+AREA_GRADE = pygame.Rect(0, Y_FILTROS + 42, LARGURA, ALTURA - Y_FILTROS - 42)
 TEMPO_CONFIRMAR = 3.0
-CENTRO_PREVIA = (150, VITRINE.centery + 6)
+TEMPO_AVISO = 2.2
 
 
 def retangulo_cartao(indice):
@@ -35,45 +49,141 @@ def retangulo_cartao(indice):
                        AREA_GRADE.y + 8 + linha * (CARTAO_A + ESPACO), CARTAO_L, CARTAO_A)
 
 
+def _itens(aba, filtro):
+    if aba == SKINS_ABA:
+        return POR_CATEGORIA[filtro]
+    return tuple(c for c in CENARIOS if c.grupo == filtro)
+
+
 class ShopScene(Scene):
     fps = 60
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, aba=SKINS_ABA):
         super().__init__(ctx)
-        r = ctx.resources
         self.loja = ctx.shop
+        self.cenarios = ctx.scenarios
         self.tempo = 0.0
-        self.indice = next(i for i, s in enumerate(SKINS) if s.id == self.loja.equipada)
+        self.vitrine = Vitrine(ctx)
+        self.miniaturas = FilaMiniaturas(ctx.resources.cenarios)
+        self.miniaturas_skin = {}
+        equipada = POR_ID[self.loja.equipada]
+        self.filtro = {SKINS_ABA: equipada.categoria, CENARIOS_ABA: ORIGINAIS}
+        self.aba = SKINS_ABA
+        self.indice = 0
         self.rolagem = self.rolagem_alvo = 0.0
-        self.miniaturas = {s.id: SkinVisual(s.id, r).sprite_para(0) for s in SKINS}
-        self.visuais = {}
-        self.passaro = Passaro(r)
-        self.confirmando = None          # (skin_id, segundos restantes)
+        self.confirmando = None          # (aba, id, segundos restantes)
+        self.aviso = ('', 0.0)
         self.confetes = []
         self.aleatorio = random.Random(7)
-        self.voltar = Botao((14, 16, 56, 46), '<', self._sair, 'secundario', tamanho_texto=40)
-        self.acao = Botao((318, VITRINE.y + 176, 230, 58), '', self._agir, tamanho_texto=30)
-        self.hover = [0.0] * len(SKINS)
+        self.hover = {}
         self.mouse_em = None
-        self._garantir_visivel()
+        self.voltar = Botao((14, 16, 56, 46), '<', self._sair, 'secundario', tamanho_texto=40)
+        largura_aba = (LARGURA - 40) // 2
+        self.abas = {
+            SKINS_ABA: Botao((14, Y_ABAS, largura_aba, ALTURA_ABA), 'SKINS',
+                             lambda: self.trocar_aba(SKINS_ABA), tamanho_texto=28),
+            CENARIOS_ABA: Botao((26 + largura_aba, Y_ABAS, largura_aba, ALTURA_ABA), 'CENÁRIOS',
+                                lambda: self.trocar_aba(CENARIOS_ABA), tamanho_texto=28),
+        }
+        self.botoes_vista = [Botao((PREVIA.x + i * 85, PREVIA.bottom + 8, 80, 30), NOMES_VISTA[v],
+                                   lambda v=v: self.ver_em(v), tamanho_texto=18) for i, v in enumerate(VISTAS)]
+        self.acao = Botao((X_INFO, VITRINE.y + 150, LARGURA - X_INFO - 16, 50), '', self._agir, tamanho_texto=26)
+        self.equipamentos = Botao((X_INFO, VITRINE.y + 206, LARGURA - X_INFO - 16, 34), 'EQUIPAMENTOS',
+                                  self._abrir_equipamentos, 'secundario', tamanho_texto=20)
+        self.botoes_filtro = []
+        if aba == CENARIOS_ABA:
+            self.trocar_aba(CENARIOS_ABA)
+        else:
+            self._montar_filtros()
+            self.indice = self.itens.index(equipada)
+            self._garantir_visivel()
 
     def on_enter(self):
         self.ctx.audio.play_music(MUSICA_MENU, volume=0.5)
 
     # ------------------------------------------------------------ estado
     @property
-    def skin(self):
-        return SKINS[self.indice]
+    def itens(self):
+        return _itens(self.aba, self.filtro[self.aba])
 
-    def visual(self, skin_id):
-        if skin_id not in self.visuais:
-            self.visuais[skin_id] = SkinVisual(skin_id, self.ctx.resources)
-        visual = self.visuais[skin_id]
-        visual.efeitos = self.ctx.settings.visual_fx_enabled
-        return visual
+    @property
+    def item(self):
+        return self.itens[self.indice]
+
+    @property
+    def skin(self):
+        """Skin mostrada na vitrine (a escolhida, ou a equipada na aba Cenários)."""
+        return self.item if self.aba == SKINS_ABA else POR_ID[self.loja.equipada]
+
+    @property
+    def cenario_previa(self):
+        if self.aba == CENARIOS_ABA:
+            return self.item.id
+        return self.cenarios.fixo if self.cenarios.modo == MODO_FIXO else self.cenarios.playlist[0]
+
+    def possui(self, item):
+        return (self.loja if self.aba == SKINS_ABA else self.cenarios).possui(item.id)
+
+    def _montar_filtros(self):
+        filtros = FILTROS[self.aba]
+        largura = (LARGURA - 28 - 8 * (len(filtros) - 1)) // len(filtros)
+        self.botoes_filtro = []
+        for i, f in enumerate(filtros):
+            nome = NOMES_CATEGORIA[f] if self.aba == SKINS_ABA else NOMES_GRUPO[f]
+            quantidade = len(_itens(self.aba, f))
+            self.botoes_filtro.append(Botao((14 + i * (largura + 8), Y_FILTROS, largura, 34),
+                                            f'{nome} ({quantidade})', lambda f=f: self.trocar_filtro(f),
+                                            tamanho_texto=20))
+        self._estilos()
+
+    def _estilos(self):
+        for aba, botao in self.abas.items():
+            botao.estilo = 'destaque' if aba == self.aba else 'secundario'
+        for f, botao in zip(FILTROS[self.aba], self.botoes_filtro):
+            botao.estilo = 'primario' if f == self.filtro[self.aba] else 'secundario'
+        for v, botao in zip(VISTAS, self.botoes_vista):
+            botao.estilo = 'primario' if v == self.vitrine.vista else 'secundario'
+
+    def trocar_aba(self, aba):
+        if aba == self.aba and self.botoes_filtro:
+            return
+        self.aba = aba
+        self.confirmando = None
+        self._montar_filtros()
+        self.indice = 0
+        if aba == CENARIOS_ABA:                       # começa no cenário em uso
+            atual = self.cenario_em_uso()
+            for f in FILTROS[aba]:
+                ids = [c.id for c in _itens(aba, f)]
+                if atual in ids:
+                    self.filtro[aba] = f
+                    self._estilos()
+                    self.indice = ids.index(atual)
+        self.rolagem = self.rolagem_alvo = 0.0
+        self._garantir_visivel()
+
+    def cenario_em_uso(self):
+        return self.cenarios.fixo if self.cenarios.modo == MODO_FIXO else self.cenarios.playlist[0]
+
+    def trocar_filtro(self, filtro):
+        if filtro == self.filtro[self.aba]:
+            return
+        self.filtro[self.aba] = filtro
+        self.indice = 0
+        self.confirmando = None
+        self.rolagem = self.rolagem_alvo = 0.0
+        self._estilos()
+
+    def passar_filtro(self, passo):
+        filtros = FILTROS[self.aba]
+        self.trocar_filtro(filtros[(filtros.index(self.filtro[self.aba]) + passo) % len(filtros)])
+
+    def ver_em(self, vista):
+        self.vitrine.vista = vista
+        self._estilos()
 
     def _rolagem_maxima(self):
-        ultimo = retangulo_cartao(len(SKINS) - 1)
+        ultimo = retangulo_cartao(len(self.itens) - 1)
         return max(0, ultimo.bottom + 16 - AREA_GRADE.bottom)
 
     def _garantir_visivel(self):
@@ -85,7 +195,7 @@ class ShopScene(Scene):
         self.rolagem_alvo = max(0, min(self._rolagem_maxima(), self.rolagem_alvo))
 
     def _selecionar(self, indice):
-        if 0 <= indice < len(SKINS) and indice != self.indice:
+        if 0 <= indice < len(self.itens) and indice != self.indice:
             self.indice = indice
             self.confirmando = None
             self._garantir_visivel()
@@ -93,57 +203,112 @@ class ShopScene(Scene):
     def _sair(self):
         self.manager.pop()
 
+    def _abrir_equipamentos(self):
+        from .equipment_scene import EquipmentScene
+        self.ctx.audio.play_sfx('ponto', 0.35)
+        self.manager.push(EquipmentScene(self.ctx))
+
+    def _avisar(self, mensagem):
+        self.aviso = (mensagem, TEMPO_AVISO)
+
+    # ------------------------------------------------------------ ações
     def _agir(self):
-        skin = self.skin
-        audio = self.ctx.audio
-        if self.loja.possui(skin.id):
-            if self.loja.equipada != skin.id:
-                self.loja.equipar(skin.id)
-                audio.play_sfx('ponto', 0.4)
+        item, audio = self.item, self.ctx.audio
+        if self.possui(item):
+            self._usar(item)
             return
-        if not self.ctx.wallet.pode_pagar(skin.preco):
+        if not self.ctx.wallet.pode_pagar(item.preco):
             audio.play_sfx('colisao', 0.25)
             return
-        if not self.confirmando or self.confirmando[0] != skin.id:
-            self.confirmando = (skin.id, TEMPO_CONFIRMAR)
+        if not self.confirmando or self.confirmando[:2] != (self.aba, item.id):
+            self.confirmando = (self.aba, item.id, TEMPO_CONFIRMAR)
             audio.play_sfx('pulo', 0.4)
             return
-        if self.loja.comprar(skin.id) == OK:
-            self.loja.equipar(skin.id)
+        if self.aba == SKINS_ABA:
+            comprou = self.loja.comprar(item.id) == OK
+            if comprou:
+                self.loja.equipar(item.id)
+        else:
+            comprou = self.cenarios.comprar(item.id) == OK
+            if comprou and self.cenarios.modo == MODO_FIXO:
+                self.cenarios.usar_fixo(item.id)
+        if comprou:
             self.confirmando = None
             audio.play_sfx('ponto', 0.6)
             self._comemorar()
 
+    def _usar(self, item):
+        audio = self.ctx.audio
+        if self.aba == SKINS_ABA:
+            if self.loja.equipada != item.id:
+                self.loja.equipar(item.id)
+                audio.play_sfx('ponto', 0.4)
+            return
+        if self.cenarios.modo == MODO_FIXO:
+            if self.cenarios.fixo != item.id:
+                self.cenarios.usar_fixo(item.id)
+                audio.play_sfx('ponto', 0.4)
+            return
+        resultado = self.cenarios.alternar_na_playlist(item.id)
+        if resultado == PLAYLIST_CHEIA:
+            self._avisar('A playlist já tem 15 cenários')
+            audio.play_sfx('colisao', 0.25)
+        elif resultado == ULTIMO_DA_PLAYLIST:
+            self._avisar('A playlist precisa de pelo menos 1')
+            audio.play_sfx('colisao', 0.25)
+        else:
+            audio.play_sfx('ponto', 0.4)
+
     def _comemorar(self):
         if not self.ctx.settings.visual_fx_enabled:
             return
-        cores = (Palette.COIN, Palette.LOGO_GREEN, Palette.WHITE, CORES_RARIDADE[self.skin.raridade])
+        destaque = CORES_RARIDADE[self.item.raridade] if self.aba == SKINS_ABA else CORES_PERIODO[self.item.periodo]
+        cores = (Palette.COIN, Palette.LOGO_GREEN, Palette.WHITE, destaque)
+        centro = PREVIA.center
         for _ in range(40):
             ang = self.aleatorio.uniform(0, 2 * math.pi)
             vel = self.aleatorio.uniform(120, 320)
-            self.confetes.append([*CENTRO_PREVIA, vel * math.cos(ang), vel * math.sin(ang) - 120, 0.0,
+            self.confetes.append([*centro, vel * math.cos(ang), vel * math.sin(ang) - 120, 0.0,
                                   self.aleatorio.choice(cores)])
 
     def _texto_acao(self):
         """(rótulo, estilo, habilitado) do botão da vitrine."""
-        skin = self.skin
-        if self.loja.equipada == skin.id:
-            return 'EQUIPADA', 'secundario', False
-        if self.loja.possui(skin.id):
-            return 'EQUIPAR', 'primario', True
-        faltam = skin.preco - self.ctx.wallet.saldo
+        item = self.item
+        if self.possui(item):
+            if self.aba == SKINS_ABA:
+                return ('EQUIPADA', 'secundario', False) if self.loja.equipada == item.id else ('EQUIPAR', 'primario', True)
+            if self.cenarios.modo == MODO_FIXO:
+                return ('EM USO', 'secundario', False) if self.cenarios.fixo == item.id else ('USAR', 'primario', True)
+            if self.cenarios.na_playlist(item.id):
+                return 'TIRAR DA PLAYLIST', 'secundario', True
+            return 'PÔR NA PLAYLIST', 'primario', True
+        faltam = item.preco - self.ctx.wallet.saldo
         if faltam > 0:
             return f'FALTAM {faltam}', 'primario', False
-        if self.confirmando and self.confirmando[0] == skin.id:
+        if self.confirmando and self.confirmando[:2] == (self.aba, item.id):
             return 'CONFIRMAR?', 'perigo', True
-        return f'COMPRAR {skin.preco}', 'destaque', True
+        return f'COMPRAR {item.preco}', 'destaque', True
 
     # ------------------------------------------------------------ entrada
+    def _botoes(self):
+        botoes = [self.voltar, *self.abas.values(), *self.botoes_filtro, *self.botoes_vista, self.acao]
+        if self.aba == CENARIOS_ABA:
+            botoes.append(self.equipamentos)
+        return botoes
+
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             tecla = event.key
             if tecla == pygame.K_ESCAPE:
                 self._sair()
+            elif tecla == pygame.K_TAB:
+                self.trocar_aba(CENARIOS_ABA if self.aba == SKINS_ABA else SKINS_ABA)
+            elif tecla in (pygame.K_q, pygame.K_PAGEUP):
+                self.passar_filtro(-1)
+            elif tecla in (pygame.K_e, pygame.K_PAGEDOWN):
+                self.passar_filtro(1)
+            elif tecla == pygame.K_v:
+                self.ver_em(VISTAS[(VISTAS.index(self.vitrine.vista) + 1) % len(VISTAS)])
             elif tecla == pygame.K_LEFT:
                 self._selecionar(self.indice - 1)
             elif tecla == pygame.K_RIGHT:
@@ -151,25 +316,26 @@ class ShopScene(Scene):
             elif tecla == pygame.K_UP:
                 self._selecionar(self.indice - COLUNAS)
             elif tecla == pygame.K_DOWN:
-                self._selecionar(min(len(SKINS) - 1, self.indice + COLUNAS))
+                self._selecionar(min(len(self.itens) - 1, self.indice + COLUNAS))
             elif tecla in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                self._agir()
+                if self.acao.habilitado:
+                    self._agir()
             return
         if event.type == pygame.MOUSEWHEEL:
             self.rolagem_alvo = max(0, min(self._rolagem_maxima(), self.rolagem_alvo - event.y * 80))
             return
         if event.type == pygame.MOUSEMOTION:
-            self.voltar.foco = self.voltar.contem(event.pos)
-            self.acao.foco = self.acao.contem(event.pos)
+            for botao in self._botoes():
+                botao.foco = botao.contem(event.pos)
             self.mouse_em = self._cartao_em(event.pos)
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for botao in (self.voltar, self.acao):
+            for botao in self._botoes():
                 if botao.contem(event.pos) and botao.habilitado:
                     botao.apertado = True
             return
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            for botao in (self.voltar, self.acao):
+            for botao in self._botoes():
                 if botao.apertado:
                     botao.apertado = False
                     if botao.contem(event.pos):
@@ -182,7 +348,7 @@ class ShopScene(Scene):
     def _cartao_em(self, pos):
         if not AREA_GRADE.collidepoint(pos):
             return None
-        for i in range(len(SKINS)):
+        for i in range(len(self.itens)):
             if retangulo_cartao(i).move(0, -self.rolagem).collidepoint(pos):
                 return i
         return None
@@ -192,19 +358,20 @@ class ShopScene(Scene):
         self.tempo += dt
         self.rolagem = aproximar(self.rolagem, self.rolagem_alvo, dt, 220)
         if self.confirmando:
-            restante = self.confirmando[1] - dt
-            self.confirmando = (self.confirmando[0], restante) if restante > 0 else None
+            aba, ident, restante = self.confirmando
+            self.confirmando = (aba, ident, restante - dt) if restante > dt else None
+        mensagem, restante = self.aviso
+        self.aviso = (mensagem, max(0.0, restante - dt))
         rotulo, estilo, habilitado = self._texto_acao()
         self.acao.rotulo, self.acao.estilo, self.acao.habilitado = rotulo, estilo, habilitado
-        self.voltar.atualizar(dt)
-        self.acao.atualizar(dt)
-        for i in range(len(SKINS)):
+        for botao in self._botoes():
+            botao.atualizar(dt)
+        for i in range(len(self.itens)):
+            chave = (self.aba, i)
             alvo = 1.0 if i in (self.indice, self.mouse_em) else 0.0
-            self.hover[i] = aproximar(self.hover[i], alvo, dt)
-        self.passaro.contador += 1
-        if self.passaro.contador >= 10:
-            self.passaro.contador = 0
-            self.passaro.indice = (self.passaro.indice + 1) % 3
+            self.hover[chave] = aproximar(self.hover.get(chave, 0.0), alvo, dt)
+        self.vitrine.atualizar()
+        self.miniaturas.atualizar()
         vivos = []
         for c in self.confetes:
             c[0] += c[2] * dt
@@ -217,8 +384,10 @@ class ShopScene(Scene):
 
     def draw(self, surface):
         surface.blit(self.ctx.resources.fundos['bg'], (0, -60))
-        self._desenhar_vitrine(surface)
         self._desenhar_grade(surface)
+        self._desenhar_vitrine(surface)
+        for botao in self.botoes_filtro:
+            botao.desenhar(surface)
         self._desenhar_topo(surface)
 
     def _desenhar_topo(self, surface):
@@ -232,51 +401,73 @@ class ShopScene(Scene):
         surface.blit(icone, icone.get_rect(midright=(rect.x - 6, 39)))
 
     def _desenhar_vitrine(self, surface):
-        skin = self.skin
-        cor = CORES_RARIDADE[skin.raridade]
-        pygame.draw.ellipse(surface, Palette.INK, (CENTRO_PREVIA[0] - 74, CENTRO_PREVIA[1] + 46, 148, 30))
-        pygame.draw.ellipse(surface, clarear(cor, 0.25), (CENTRO_PREVIA[0] - 70, CENTRO_PREVIA[1] + 44, 140, 24))
-        efeitos = self.ctx.settings.visual_fx_enabled
-        sobe = math.sin(self.tempo * 3) * 8 if efeitos else 0
-        p = self.passaro
-        p.skin = self.visual(skin.id)
-        largura, altura = p.sprite.get_size()
-        p.x, p.y = CENTRO_PREVIA[0] - largura / 2, CENTRO_PREVIA[1] - altura / 2 + sobe
-        p.vy = -math.sin(self.tempo * 3) * 2.5 if efeitos else 0
-        p.desenhar(surface)
-        for x, y, _, _, idade, cor_confete in self.confetes:
-            pygame.draw.rect(surface, cor_confete, (x, y, 7, 7))
-        x = 318
-        desenhar_texto(surface, skin.nome.upper(), 36, topo_esquerdo=(x, VITRINE.y + 28), espessura=2)
-        selo = texto(NOMES_RARIDADE[skin.raridade], 22, Palette.WHITE, None)
-        caixa = pygame.Rect(x, VITRINE.y + 82, selo.get_width() + 24, 30)
-        painel(surface, caixa, cor, raio=15, sombra=3, brilho=False)
+        fundo = pygame.Surface((LARGURA, VITRINE.bottom - Y_ABAS + 6), pygame.SRCALPHA)
+        fundo.fill((*Palette.SKY, 235))
+        surface.blit(fundo, (0, Y_ABAS - 6))
+        for botao in self.abas.values():
+            botao.desenhar(surface)
+        self.vitrine.desenhar(surface, PREVIA, self.cenario_previa, self.skin.id, self.tempo)
+        for botao in self.botoes_vista:
+            botao.desenhar(surface)
+        for x, y, _, _, _, cor in self.confetes:
+            pygame.draw.rect(surface, cor, (x, y, 7, 7))
+        item = self.item
+        largura = LARGURA - X_INFO - 16
+        nome = texto_que_cabe(item.nome.upper(), 32, largura)
+        surface.blit(nome, (X_INFO, VITRINE.y + 12))
+        if self.aba == SKINS_ABA:
+            selo_texto, cor = NOMES_RARIDADE[item.raridade], CORES_RARIDADE[item.raridade]
+        else:
+            selo_texto, cor = NOMES_PERIODO[item.periodo], CORES_PERIODO[item.periodo]
+        selo = texto(selo_texto, 20, Palette.WHITE, None)
+        caixa = pygame.Rect(X_INFO, VITRINE.y + 54, selo.get_width() + 24, 28)
+        painel(surface, caixa, cor, raio=14, sombra=3, brilho=False)
         surface.blit(selo, selo.get_rect(center=caixa.center))
-        if self.loja.possui(skin.id):
+        if self.possui(item):
             estado = 'NA SUA COLEÇÃO'
-            desenhar_texto(surface, estado, 24, topo_esquerdo=(x, VITRINE.y + 130), cor=Palette.WHITE)
+            if self.aba == CENARIOS_ABA and self.cenarios.modo != MODO_FIXO:
+                estado = f'PLAYLIST {len(self.cenarios.playlist)}/15'
+            desenhar_texto(surface, estado, 22, topo_esquerdo=(X_INFO, VITRINE.y + 100), cor=Palette.WHITE)
         else:
             icone = icone_moeda(14)
-            surface.blit(icone, (x, VITRINE.y + 128))
-            desenhar_texto(surface, str(skin.preco), 34, topo_esquerdo=(x + 34, VITRINE.y + 124),
+            surface.blit(icone, (X_INFO, VITRINE.y + 98))
+            desenhar_texto(surface, str(item.preco), 34, topo_esquerdo=(X_INFO + 34, VITRINE.y + 94),
                            cor=Palette.COIN)
         self.acao.desenhar(surface)
+        if self.aba == CENARIOS_ABA:
+            self.equipamentos.desenhar(surface)
+        mensagem, restante = self.aviso
+        if restante > 0:
+            img = texto(mensagem, 22, Palette.WHITE, Palette.INK, 2)
+            caixa = img.get_rect(center=(LARGURA // 2, VITRINE.bottom - 14)).inflate(24, 12)
+            painel(surface, caixa, Palette.DANGER, raio=12, sombra=3, brilho=False)
+            surface.blit(img, img.get_rect(center=caixa.center))
 
     def _desenhar_grade(self, surface):
-        fundo = pygame.Surface(AREA_GRADE.size, pygame.SRCALPHA)
+        fundo = pygame.Surface((LARGURA, ALTURA - Y_FILTROS + 6), pygame.SRCALPHA)
         fundo.fill((*Palette.INK, 150))
-        surface.blit(fundo, AREA_GRADE)
+        surface.blit(fundo, (0, Y_FILTROS - 6))
         surface.set_clip(AREA_GRADE)
-        for i, skin in enumerate(SKINS):
+        for i, item in enumerate(self.itens):
             rect = retangulo_cartao(i).move(0, -round(self.rolagem))
             if rect.bottom < AREA_GRADE.top or rect.top > AREA_GRADE.bottom:
                 continue
-            self._desenhar_cartao(surface, i, skin, rect)
+            escala = 1 + 0.05 * self.hover.get((self.aba, i), 0.0)
+            rect = rect.inflate(rect.w * (escala - 1), rect.h * (escala - 1))
+            if self.aba == SKINS_ABA:
+                self._desenhar_cartao_skin(surface, item, rect)
+            else:
+                self._desenhar_cartao_cenario(surface, item, rect)
+            if i == self.indice:
+                pygame.draw.rect(surface, Palette.WHITE, rect.inflate(8, 8), 3, border_radius=12)
         surface.set_clip(None)
 
-    def _desenhar_cartao(self, surface, i, skin, rect):
-        escala = 1 + 0.05 * self.hover[i]
-        rect = rect.inflate(rect.w * (escala - 1), rect.h * (escala - 1))
+    def _miniatura_skin(self, skin_id):
+        if skin_id not in self.miniaturas_skin:
+            self.miniaturas_skin[skin_id] = self.vitrine.visual(skin_id).sprite_para(0)
+        return self.miniaturas_skin[skin_id]
+
+    def _desenhar_cartao_skin(self, surface, skin, rect):
         cor = CORES_RARIDADE[skin.raridade]
         possui = self.loja.possui(skin.id)
         painel(surface, rect, Palette.PANEL_LIGHT if possui else Palette.PANEL, sombra=4)
@@ -284,20 +475,32 @@ class ShopScene(Scene):
         pygame.draw.rect(surface, cor, faixa, border_top_left_radius=8, border_top_right_radius=8)
         rotulo = texto(NOMES_RARIDADE[skin.raridade], 18, Palette.WHITE, None)
         surface.blit(rotulo, rotulo.get_rect(center=faixa.center))
-        mini = self.miniaturas[skin.id]
+        mini = self._miniatura_skin(skin.id)
         surface.blit(mini, mini.get_rect(center=(rect.centerx, rect.y + 64)))
-        nome = texto(skin.nome, 22, Palette.INK, None)
-        surface.blit(nome, nome.get_rect(center=(rect.centerx, rect.y + 104)))
+        nome = texto_que_cabe(skin.nome, 22, rect.w - 12, Palette.INK, None)
+        surface.blit(nome, nome.get_rect(center=(rect.centerx, rect.y + 106)))
         if self.loja.equipada == skin.id:
-            desenhar_texto(surface, 'EQUIPADA', 22, (rect.centerx, rect.bottom - 22), Palette.LOGO_GREEN)
+            desenhar_texto(surface, 'EQUIPADA', 22, (rect.centerx, rect.bottom - 20), Palette.LOGO_GREEN)
         elif possui:
-            desenhar_texto(surface, 'COMPRADA', 22, (rect.centerx, rect.bottom - 22), Palette.WHITE)
+            desenhar_texto(surface, 'COMPRADA', 22, (rect.centerx, rect.bottom - 20), Palette.WHITE)
         else:
             preco = texto(str(skin.preco), 24, Palette.COIN, Palette.INK, 2)
             icone = icone_moeda(10)
-            largura = icone.get_width() + 4 + preco.get_width()
-            x = rect.centerx - largura // 2
-            surface.blit(icone, icone.get_rect(midleft=(x, rect.bottom - 22)))
-            surface.blit(preco, preco.get_rect(midleft=(x + icone.get_width() + 4, rect.bottom - 22)))
-        if i == self.indice:
-            pygame.draw.rect(surface, Palette.WHITE, rect.inflate(8, 8), 3, border_radius=12)
+            x = rect.centerx - (icone.get_width() + 4 + preco.get_width()) // 2
+            surface.blit(icone, icone.get_rect(midleft=(x, rect.bottom - 20)))
+            surface.blit(preco, preco.get_rect(midleft=(x + icone.get_width() + 4, rect.bottom - 20)))
+
+    def _desenhar_cartao_cenario(self, surface, cenario, rect):
+        possui = self.cenarios.possui(cenario.id)
+        aleatorio = self.cenarios.modo != MODO_FIXO
+        if not possui:
+            rodape, cor = cenario.preco, Palette.COIN
+        elif not aleatorio and self.cenarios.fixo == cenario.id:
+            rodape, cor = 'EM USO', Palette.LOGO_GREEN
+        elif aleatorio and self.cenarios.na_playlist(cenario.id):
+            rodape, cor = 'NA PLAYLIST', Palette.LOGO_GREEN
+        else:
+            rodape, cor = 'COMPRADO', Palette.WHITE
+        desenhar_cartao_cenario(surface, rect, cenario, self.miniaturas.pegar(cenario.id), rodape, cor,
+                                ativo=possui)
+

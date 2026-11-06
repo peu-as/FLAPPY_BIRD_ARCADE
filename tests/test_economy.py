@@ -291,11 +291,15 @@ def test_loja_rola_ate_o_fim_e_desenha(ctx, efeitos):
     ctx.settings.set('visual_fx', efeitos)
     loja = ShopScene(ctx)
     ctx.scenes.push(loja)
-    for _ in range(len(SKINS)):
-        tecla(loja, pygame.K_DOWN)
-        tecla(loja, pygame.K_RIGHT)
-    quadros(loja, 60)
-    assert loja.indice == len(SKINS) - 1 and loja.rolagem > 0
+    for aba in ('skins', 'cenarios'):
+        loja.trocar_aba(aba)
+        for _ in range(3):                              # cada filtro da aba (Q/E)
+            for _ in range(len(SKINS)):
+                tecla(loja, pygame.K_DOWN)
+                tecla(loja, pygame.K_RIGHT)
+            quadros(loja, 60)
+            assert loja.indice == len(loja.itens) - 1 and loja.rolagem > 0
+            tecla(loja, pygame.K_e)
 
 
 def test_tela_de_modos_abre_a_loja(ctx):

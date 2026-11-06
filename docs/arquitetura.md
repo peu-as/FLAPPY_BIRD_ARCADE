@@ -48,12 +48,15 @@ src/
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
     scenes/
-      main_menu.py           menu principal: modos, loja, configurações, sair
+      main_menu.py           menu principal: modos, loja, equipamentos, configurações, sair
       pause_scene.py         pausa: continuar, configurações, recomeçar, sair
       settings_scene.py      configurações (interruptores) e resetar progresso
       map_scene.py           mapa de 25 casas com rolagem
       level_scene.py         casa: abertura -> jogo -> resultado com estrelas e moedas
-      shop_scene.py          loja: vitrine animada + grade de skins
+      shop_scene.py          loja: abas Skins/Cenários, filtros, vitrine e grade
+      equipment_scene.py     Equipamentos: cenário fixo ou playlist aleatória (até 15)
+      vitrine.py             prévia combinada (skin sobre o cenário, "Ver em" Flappy/Galaga/Donkey),
+                             cartões de cenário e fila de miniaturas
       game_scene.py          conduz a sessão (clássico ou livre)
     ui/
       theme.py               paleta (tirada dos sprites), medidas, animação, fontes
@@ -70,6 +73,7 @@ tests/
   test_polish.py             pausa, configurações, reset, menu, música, transições
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
+  test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
 tools/
@@ -150,6 +154,13 @@ Modo Livre, mapas e jornada usam os cenários do jogador no Flappy; o clássico 
 - **Galaga ("Decolagem")**: o horizonte do cenário fica embaixo e se dissolve no espaço original; a formação continua voando no espaço puro. No chefão, o mundo escurece mais em 1 s. **Donkey ("Selva sobre o seu mundo")**: o cenário substitui o céu, tingido de selva à noite, atrás das duas camadas de palmeiras; rola a 0,05 (palmeiras a 0,15 e 0,35), espelhado para não ter emenda.
 - **Leitura garantida (exposição automática)**: cada cenário escurece só o necessário para a nave (faixa da nave) e as bananas (área de jogo do Donkey) terem contraste de pelo menos 3:1 com o fundo (`CONTRASTE_MINIMO`, o mínimo das diretrizes de acessibilidade para elementos gráficos). `tests/test_scenery.py` mede isso nos 31 cenários; cenário novo que não passar é escurecido sozinho.
 - As versões das fases são montadas uma vez (~28 ms), durante o alerta de 5 s que antecede a fase, e só as da fase da vez ficam na memória. Sem cenário (clássico), `FaseGalaga.desenhar_fundo` e `FaseDonkey.desenhar_fundo` desenham exatamente o original.
+
+## Loja e Equipamentos
+
+- **Loja** (`ShopScene(ctx, aba='skins'|'cenarios')`): abas com filtros (Clássicas, Fantasias, Times; Originais, Novos). A vitrine mostra a skin voando sobre o cenário: na aba Skins, a escolhida sobre o cenário em uso; na aba Cenários, o escolhido com a skin equipada. "Ver em" troca a prévia entre Flappy, Galaga e Donkey (as mesmas montagens do jogo). Teclas: setas, ENTER, TAB (aba), Q/E (filtro), V (vista), ESC.
+- Comprar pede confirmação. Skin comprada é equipada. Cenário comprado entra na playlist e, no modo fixo, vira o fixo. Cenário que já é seu: no fixo, USAR; no aleatório, PÔR/TIRAR DA PLAYLIST.
+- **Equipamentos** (menu principal e loja): FIXO ou ALEATÓRIO, cartões só dos cenários comprados (no aleatório, com caixinha e contador "N/15"), atalhos para a loja de cenários e para trocar a skin. Tudo vai para o save na hora.
+- **Miniaturas**: recortes do horizonte (156x88) guardados à parte (`GerenciadorCenarios.miniatura`), sem tirar os fundos grandes da memória; montadas no máximo 2 por quadro (`FilaMiniaturas`) para a tela abrir sem engasgo. As prévias da vitrine guardam as 6 últimas.
 
 ## Pausa, configurações e música
 

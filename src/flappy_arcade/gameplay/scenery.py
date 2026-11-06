@@ -66,6 +66,7 @@ class GerenciadorCenarios:
         self.limite = limite
         self._prontos = OrderedDict()
         self._variantes = OrderedDict()   # versões Galaga/Donkey: só as da fase da vez
+        self._miniaturas = {}             # cartões da loja e dos Equipamentos (pequenas)
         self.montagens = 0           # quantas vezes um fundo foi montado (testes)
 
     def fundo(self, cenario_id):
@@ -82,6 +83,19 @@ class GerenciadorCenarios:
     @property
     def em_memoria(self):
         return list(self._prontos)
+
+    def miniatura(self, cenario_id, tamanho):
+        """Recorte do horizonte em tamanho de cartão. Não ocupa o lugar dos fundos grandes."""
+        chave = (cenario_id, tamanho)
+        if chave not in self._miniaturas:
+            retrato = self._prontos.get(cenario_id) or self._montar(POR_ID[cenario_id])
+            altura = min(Y_CHAO - 80, round(LARGURA * tamanho[1] / tamanho[0]))
+            corte = pygame.Rect(0, Y_CHAO - 40 - altura, LARGURA, altura)
+            self._miniaturas[chave] = pygame.transform.smoothscale(retrato.subsurface(corte), tamanho)
+        return self._miniaturas[chave]
+
+    def tem_miniatura(self, cenario_id, tamanho):
+        return (cenario_id, tamanho) in self._miniaturas
 
     def variante(self, cenario_id, tipo):
         """'galaga', 'galaga_chefe' ou 'donkey', montada uma vez por fase."""

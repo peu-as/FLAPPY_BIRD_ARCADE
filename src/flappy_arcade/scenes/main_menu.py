@@ -1,4 +1,4 @@
-"""Menu principal: os cinco modos, loja, configurações e sair.
+"""Menu principal: os modos, loja, equipamentos, configurações e sair.
 
 O cenário é o do próprio jogo, em movimento (céu deslizando, chão rolando e
 pássaros cruzando ao fundo). Os botões entram em cascata ao abrir o jogo.
@@ -18,12 +18,14 @@ from ..gameplay.flappy import Chao
 from ..gameplay.resources import ajustar_sprite
 from ..ui.theme import Palette
 from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, painel, texto
+from .equipment_scene import EquipmentScene
 from .game_scene import GameScene
 from .map_scene import MapScene
 from .settings_scene import SettingsScene
 from .shop_scene import ShopScene
 
 LARGURA_BOTAO, ALTURA_BOTAO, ESPACO = 430, 54, 10
+LARGURA_LINHA_DE_BAIXO = 500      # equipamentos, configurações e sair
 Y_PRIMEIRO_BOTAO = 246
 RECORTE_LOGO = (0, 0, 368, 96)     # só a palavra "FlappyBird" do logotipo
 ENTRADA, ATRASO_ENTRADA = 0.5, 0.06
@@ -81,9 +83,12 @@ class MainMenuScene(Scene):
         modo(5, 'CLÁSSICO', lambda: self._abrir(GameScene(self.ctx, 'classico')), 'classico', 'original',
              estilo='secundario')
         y = Y_PRIMEIRO_BOTAO + 6 * (ALTURA_BOTAO + ESPACO) + 6
-        botoes.append(Botao((LARGURA // 2 - 215, y, 260, 48), 'CONFIGURAÇÕES',
-                            lambda: self._abrir(SettingsScene(self.ctx)), 'secundario', tamanho_texto=26))
-        botoes.append(Botao((LARGURA // 2 + 55, y, 160, 48), 'SAIR', self._sair, 'perigo', tamanho_texto=26))
+        x = (LARGURA - LARGURA_LINHA_DE_BAIXO) // 2
+        botoes.append(Botao((x, y, 190, 48), 'EQUIPAMENTOS',
+                            lambda: self._abrir(EquipmentScene(self.ctx)), 'secundario', tamanho_texto=24))
+        botoes.append(Botao((x + 200, y, 190, 48), 'CONFIGURAÇÕES',
+                            lambda: self._abrir(SettingsScene(self.ctx)), 'secundario', tamanho_texto=24))
+        botoes.append(Botao((x + 400, y, 100, 48), 'SAIR', self._sair, 'perigo', tamanho_texto=24))
         botoes.append(Botao((LARGURA - 136, 14, 122, 48), 'LOJA', lambda: self._abrir(ShopScene(self.ctx)),
                             'destaque', icone=icone_moeda(12), tamanho_texto=28))
         for b in botoes:
