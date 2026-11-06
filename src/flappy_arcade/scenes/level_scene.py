@@ -7,7 +7,7 @@ e os botões do resultado (mapa, de novo, próxima).
 import pygame
 
 from ..config.constants import ALTURA, FPS, LARGURA
-from ..config.economy import BONUS_POR_ESTRELA_NOVA
+from ..config.economy import bonus_por_estrela
 from ..config.levels import CAPITULOS, CASAS, MAPAS, NOMES_ESTILOS, cor_da_casa, etapa_arcade
 from ..core.paths import MUSICA_JOGO
 from ..core.scene import Scene
@@ -69,7 +69,7 @@ class LevelScene(Scene):
         s = self.session
         if s.resultado == 'VITORIA':
             self.melhorou, self.liberou = self.ctx.progress.registrar(self.mapa, self.casa, s.estrelas)
-            self.bonus = BONUS_POR_ESTRELA_NOVA * max(0, s.estrelas - self.melhor_antes)
+            self.bonus = bonus_por_estrela(self.casa) * max(0, s.estrelas - self.melhor_antes)
         self._depositar()
         self.fase, self.tempo_fase = RESULTADO, 0.0
         botoes = self._botoes_resultado()

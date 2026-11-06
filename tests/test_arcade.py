@@ -18,6 +18,7 @@ from flappy_arcade.config.levels import (
 from flappy_arcade.core.event_bus import EventBus
 from flappy_arcade.gameplay.difficulty_curve import CurvaDificuldade
 from flappy_arcade.gameplay.level_session import (
+    DificuldadeDaCasa,
     DonkeyLevelSession,
     FlappyLevelSession,
     GalagaLevelSession,
@@ -76,7 +77,12 @@ def test_cada_casa_vira_a_sessao_do_seu_estilo(servicos, casa):
     if etapa.estilo in ('flappy', 'passaros'):
         assert isinstance(s, FlappyLevelSession) and s.estado == 'JOGO'
         assert s.especial == (etapa.estilo == 'passaros')
-        assert s.params_nivel == curva.flappy(casa)
+        esperado = DificuldadeDaCasa(etapa.chefe).flappy(casa)    # chefão: um degrau acima (Fase 14)
+        assert s.params_nivel == esperado
+        if etapa.chefe:
+            assert esperado['abertura'] <= curva.flappy(casa)['abertura']
+        else:
+            assert esperado == curva.flappy(casa)
     else:
         classe = {'donkey': DonkeyLevelSession, 'galaga': GalagaLevelSession}[etapa.estilo]
         assert isinstance(s, classe) and s.estado == etapa.estilo.upper()

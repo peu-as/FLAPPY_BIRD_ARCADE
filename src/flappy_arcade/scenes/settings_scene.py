@@ -102,9 +102,9 @@ class SettingsScene(OverlayScene):
         super().draw(surface)
         if self.confirmando:
             desenhar_cartao(surface, CARTAO, 'APAGAR TUDO?', Palette.DANGER)
-            linhas = ['Isto apaga suas moedas, as skins',
-                      'compradas, as estrelas de todos os',
-                      'mapas e o recorde do Modo Livre.',
+            linhas = ['Isto apaga suas moedas, as skins e',
+                      'os cenários comprados, as estrelas',
+                      'dos mapas e o recorde do Modo Livre.',
                       '',
                       'As configurações e o ranking do',
                       'jogo clássico continuam.',

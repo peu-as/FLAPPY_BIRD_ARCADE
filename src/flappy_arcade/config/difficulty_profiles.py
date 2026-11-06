@@ -50,7 +50,7 @@ FLAPPY = {
     # O Flappy vai um pouco além do nível 10 original (1,64 | 191 px | 5,35),
     # mantendo a passagem justa (ver teste de justiça).
     'gravidade': Rampa(fim=1.70, curva=0.85),
-    'abertura': Rampa(fim=175, curva=0.85, inteiro=True),
+    'abertura': Rampa(fim=182, curva=0.85, inteiro=True),
     'velocidade': Rampa(fim=6.20, curva=0.85),
     'pontos_passaros': Rampa(inteiro=True),                     # 15 -> 24
     'oscilacao_passaros': Rampa(fim=36, desde=9, inicio=9, inteiro=True, curva=0.7),

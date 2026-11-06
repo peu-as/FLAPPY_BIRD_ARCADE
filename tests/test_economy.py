@@ -8,7 +8,7 @@ import snapshot
 from scenarios import FakeClock
 
 from flappy_arcade.config.constants import ALTURA, LARGURA, Y_NAVE
-from flappy_arcade.config.economy import BONUS_POR_ESTRELA_NOVA
+from flappy_arcade.config.economy import MOEDAS_POR_BANANA, bonus_por_estrela
 from flappy_arcade.config.skins import COMUM, FAIXAS_PRECO, POR_ID, SKIN_PADRAO, SKINS
 from flappy_arcade.core.event_bus import EventBus
 from flappy_arcade.gameplay.coins import ColetorMoedas
@@ -152,7 +152,7 @@ def test_bananas_do_donkey_viram_moedas(recursos, tmp_path):
     passo(s, clock)
     s.donkey.bananas_coletadas += 3
     passo(s, clock)
-    assert s.moedas_coletadas == 3
+    assert s.moedas_coletadas == 3 * MOEDAS_POR_BANANA
 
 
 def test_coletor_nao_mexe_no_random_do_jogo(recursos, tmp_path):
@@ -223,15 +223,21 @@ def vencer_casa(ctx, mapa, casa, moedas, danos=0):
 
 
 def test_casa_deposita_moedas_e_bonus_so_de_estrelas_novas(ctx):
+    por_estrela = bonus_por_estrela(1)
     cena = vencer_casa(ctx, 'flappy', 1, moedas=7, danos=1)              # 2 estrelas
-    assert cena.bonus == 2 * BONUS_POR_ESTRELA_NOVA
-    assert ctx.wallet.saldo == 7 + 20
+    assert cena.bonus == 2 * por_estrela
+    assert ctx.wallet.saldo == 7 + 2 * por_estrela
     cena.on_exit()                                                       # não deposita de novo
-    assert ctx.wallet.saldo == 27
+    saldo = ctx.wallet.saldo
     vencer_casa(ctx, 'flappy', 1, moedas=4, danos=1)                     # repetiu: sem bônus
-    assert ctx.wallet.saldo == 27 + 4
+    assert ctx.wallet.saldo == saldo + 4
     melhor = vencer_casa(ctx, 'flappy', 1, moedas=0)                     # 2 -> 3: uma estrela nova
-    assert melhor.bonus == BONUS_POR_ESTRELA_NOVA
+    assert melhor.bonus == por_estrela
+
+
+def test_casa_dificil_paga_mais_por_estrela():
+    valores = [bonus_por_estrela(c) for c in range(1, 26)]
+    assert valores == sorted(valores) and valores[0] < valores[-1]
 
 
 def test_sair_no_meio_guarda_as_moedas(ctx):

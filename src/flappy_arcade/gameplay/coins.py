@@ -70,14 +70,14 @@ class ColetorMoedas:
         self.caindo = []            # [x, y] das moedas da Galaga
         self.espera_galaga = INTERVALO_MOEDA_GALAGA
         self.fase_donkey, self.bananas_vistas = None, 0
-        self.avisos = []            # "+1" subindo: [x, y, idade]
+        self.avisos = []            # "+1" subindo: [x, y, idade, texto]
         self.giro = 0.0
         self.efeitos = True
 
     # ------------------------------------------------------------ lógica
     def atualizar(self, sessao, dt):
         self.giro += dt
-        self.avisos = [[x, y - 40 * dt, t + dt] for x, y, t in self.avisos if t < 0.7]
+        self.avisos = [[x, y - 40 * dt, t + dt, r] for x, y, t, r in self.avisos if t < (1.2 if len(r) > 3 else 0.7)]
         estado = sessao.estado
         if estado == 'JOGO':
             self._passagens(sessao)
@@ -90,9 +90,13 @@ class ColetorMoedas:
         if estado == 'DONKEY' and sessao.donkey:
             self._bananas(sessao)
 
-    def _ganhar(self, quantidade, x, y):
+    def _ganhar(self, quantidade, x, y, rotulo=''):
         self.coletadas += quantidade
-        self.avisos.append([x, y, 0.0])
+        self.avisos.append([x, y, 0.0, f'+{quantidade}{" " + rotulo if rotulo else ""}'])
+
+    def ganhar_bonus(self, quantidade, x, y, rotulo):
+        """Moedas que não vêm de um item (ex.: bônus de sequência do Modo Livre)."""
+        self._ganhar(quantidade, x, y, rotulo)
 
     def _passagens(self, sessao):
         vivos = {id(o) for o in sessao.obstaculos}
@@ -150,9 +154,9 @@ class ColetorMoedas:
         for x, y in self.caindo:
             tela.blit(quadro, quadro.get_rect(center=(x, y)))
         if self.efeitos:
-            for x, y, idade in self.avisos:
-                aviso = texto('+1', 26, Palette.COIN, Palette.INK, 2).copy()
-                aviso.set_alpha(max(0, 255 - int(idade * 360)))
+            for x, y, idade, rotulo in self.avisos:
+                aviso = texto(rotulo, 26, Palette.COIN, Palette.INK, 2).copy()
+                aviso.set_alpha(max(0, 255 - int(idade * (200 if len(rotulo) > 3 else 360))))
                 tela.blit(aviso, aviso.get_rect(center=(x, y - 18)))
 
     def desenhar_saldo(self, tela, saldo):

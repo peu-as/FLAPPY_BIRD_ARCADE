@@ -144,7 +144,7 @@ def test_miniaturas_aos_poucos_sem_tirar_os_fundos_da_memoria(ctx):
     fila.atualizar()
     feitas = sum(g.tem_miniatura(i, MINIATURA) for i in ids)
     assert feitas <= MINIATURAS_POR_QUADRO + 1                   # +1: 'bg' pode já estar pronto
-    for _ in range(5):
+    for _ in range(len(ids)):                                    # MINIATURAS_POR_QUADRO por vez
         fila.atualizar()
     assert all(fila.pegar(i).get_size() == MINIATURA for i in ids)
     assert g.em_memoria == antes

@@ -10,6 +10,9 @@ as fases são exatamente os do jogo original. Muda só a moldura do desafio:
 from ..config.constants import LARGURA
 from ..config.levels import (
     CASAS,
+    CHEFE_ABERTURA_A_FRENTE,
+    OSCILACAO_CHEFE,
+    OSCILACAO_CHEFE_MAXIMA,
     VIDAS_POR_CASA,
     estrelas_por_danos,
     etapa_arcade,
@@ -35,7 +38,13 @@ class DificuldadeDaCasa:
         self.chefe = chefe
 
     def flappy(self, nivel):
-        return CURVA.flappy(nivel)
+        parametros = CURVA.flappy(nivel)
+        if self.chefe:                    # o chefão é um degrau acima das casas do capítulo
+            a_frente = CURVA.flappy(min(CASAS, nivel + CHEFE_ABERTURA_A_FRENTE))
+            parametros = {**parametros, 'abertura': a_frente['abertura'],
+                          'oscilacao_passaros': min(OSCILACAO_CHEFE_MAXIMA,
+                                                    round(parametros['oscilacao_passaros'] * OSCILACAO_CHEFE))}
+        return parametros
 
     def galaga(self, nivel):
         return {**CURVA.galaga(nivel), 'chefe': self.chefe}

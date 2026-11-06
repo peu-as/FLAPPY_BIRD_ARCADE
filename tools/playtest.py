@@ -17,6 +17,8 @@ O Donkey Kong fica de fora: desviar de salvas de barris exige planejamento que
 um robô simples faria mal, e o número enganaria mais do que ajudaria.
 """
 import argparse
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 import json
 import os
 import random
@@ -158,12 +160,19 @@ def main():
     parser.add_argument('--mapas', nargs='+', default=['flappy', 'galaga'], choices=list(ROBOS))
     parser.add_argument('--habilidade', default='medio', choices=list(HABILIDADES))
     parser.add_argument('--json', help='grava os resultados brutos neste arquivo')
+    parser.add_argument('--limite', type=float, default=900, help='tempo máximo da rodada inteira, em segundos')
     args = parser.parse_args()
     tarefas = [(m, c, s, args.habilidade) for m in args.mapas for c in range(1, CASAS + 1)
                for s in range(args.tentativas)]
-    # 'spawn': cada processo começa limpo (fork depois do SDL carregado pode travar)
-    with multiprocessing.get_context('spawn').Pool() as pool:
-        resultados = pool.map(tentar, tarefas, chunksize=4)
+    # 'spawn': cada processo começa limpo (fork depois do SDL carregado pode travar).
+    # ProcessPoolExecutor em vez de Pool: se um processo morrer, ele avisa
+    # (BrokenProcessPool) em vez de esperar para sempre; e há um limite de tempo.
+    try:
+        with ProcessPoolExecutor(mp_context=multiprocessing.get_context('spawn')) as executor:
+            resultados = list(executor.map(tentar, tarefas, chunksize=4, timeout=args.limite))
+    except (TimeoutError, BrokenProcessPool) as erro:
+        sys.exit(f'playtest interrompido ({type(erro).__name__}): rode de novo com menos --tentativas '
+                 f'ou aumente --limite (hoje {args.limite:.0f} s)')
     for mapa in args.mapas:
         print(f'\n{mapa.upper()}  robô {args.habilidade}, {args.tentativas} tentativas por casa, 3 vidas cada')
         print('casa  vitória  estrelas(média nas vitórias)  tempo médio  moedas médias')

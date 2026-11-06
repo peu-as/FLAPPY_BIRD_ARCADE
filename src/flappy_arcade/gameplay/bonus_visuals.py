@@ -20,6 +20,7 @@ import pygame
 
 from ..config.constants import DESLOC_GEMEO, TIPOS_BONUS, Y_NAVE
 from ..ui.theme import Fonts
+from .hud import texto_vidas_extras
 
 # ---------------------------------------------------------------- nomes
 NOMES_NOVOS = {
@@ -337,6 +338,12 @@ class SessaoComBonusNovos:
     """
 
     efeitos_bonus = True
+
+    def desenhar_mensagem_fase(self, mensagem):
+        """Sem o "+1 VIDA" da vitória no chefão: nos mapas as vidas extras não valem
+        e o Modo Livre nem tem vidas (o clássico continua mostrando)."""
+        linhas = [linha for linha in mensagem.split('\n') if linha != texto_vidas_extras()]
+        super().desenhar_mensagem_fase('\n'.join(linhas))
 
     def desenhar(self):
         for fase in (getattr(self, 'galaga', None), getattr(self, 'donkey', None)):

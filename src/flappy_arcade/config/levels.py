@@ -33,13 +33,24 @@ def meta_flappy(casa):
     return 8 + round(0.75 * casa)
 
 
+# Chefão do Flappy: os pássaros sobem e descem mais que na fase dos pássaros
+# comum (decisão da Fase 14: sem isso, os chefões 15 e 20 ficavam mais fáceis
+# que as casas vizinhas).
+OSCILACAO_CHEFE = 1.5
+OSCILACAO_CHEFE_MAXIMA = 36      # px: acima disso o chefão final ficava impossível
+CHEFE_ABERTURA_A_FRENTE = 3      # a passagem do chefão é a de 3 casas à frente
+EXTRA_CHEFE = 8                  # pássaros a mais que a meta da casa...
+EXTRA_CHEFE_POR_CAPITULO = 2     # ...e mais 2 a cada chefão (casa 5: +10 ... casa 25: +18)
+
+
 def meta_chefe_flappy(casa):
     """Pássaros a passar na fase dos pássaros de uma casa de chefão.
 
     Os pássaros são alvos menores que os canos; com a mesma meta, o chefão
-    ficava mais fácil que as casas vizinhas. Por isso pede 8 a mais.
+    ficava mais fácil que as casas vizinhas. Por isso pede mais, e um pouco
+    mais a cada chefão.
     """
-    return meta_flappy(casa) + 8
+    return meta_flappy(casa) + EXTRA_CHEFE + EXTRA_CHEFE_POR_CAPITULO * (casa // INTERVALO_CHEFE)
 
 
 @dataclass(frozen=True)

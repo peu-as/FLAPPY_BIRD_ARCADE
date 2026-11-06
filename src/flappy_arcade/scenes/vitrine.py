@@ -26,7 +26,7 @@ TAMANHO_PREVIA = (250, 190)
 CORTES = {'flappy': pygame.Rect(17, 340, 541, 411), 'galaga': pygame.Rect(17, 449, 541, 411),
           'donkey': pygame.Rect(17, 300, 541, 411)}
 MINIATURA = (156, 88)
-MINIATURAS_POR_QUADRO = 2
+MINIATURAS_POR_QUADRO = 1
 CORES_PERIODO = {'dia': (72, 168, 224), 'tarde': (232, 128, 56), 'noite': (52, 52, 120)}
 NOMES_PERIODO = {'dia': 'DIA', 'tarde': 'TARDE', 'noite': 'NOITE'}
 LIMITE_PREVIAS = 6

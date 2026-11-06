@@ -13,6 +13,7 @@ com estas diferenças:
 from ..config.constants import LARGURA, TEMPO_INVULNERAVEL_MS
 from ..config.debug import TECLAS_DESCE_NIVEL, TECLAS_SOBE_NIVEL
 from ..config.difficulty_profiles import LIVRE_SEGUNDOS_POR_NIVEL, NIVEIS
+from ..config.economy import BONUS_POR_SEQUENCIA, SEQUENCIA_PARA_BONUS
 from .classic_session import ClassicSession
 from .bonus_visuals import SessaoComBonusNovos
 from .coins import SessaoComMoedas
@@ -31,7 +32,6 @@ class FreeSession(SessaoComBonusNovos, SessaoComCenarios, SessaoComMoedas, Class
 
     def __init__(self, recursos, audio, clock, save):
         self.save = save
-        self.recordes = save.section('records')
         self.recorde_pendente = False    # recorde novo ainda não gravado em disco
         super().__init__(recursos, audio, clock)
 
@@ -47,6 +47,11 @@ class FreeSession(SessaoComBonusNovos, SessaoComCenarios, SessaoComMoedas, Class
     @property
     def nivel_dificuldade(self):
         return self.nivel_livre
+
+    @property
+    def recordes(self):
+        """Lido do save a cada vez: um reset no meio da partida troca a seção inteira."""
+        return self.save.section('records')
 
     @property
     def melhor_sequencia(self):
@@ -125,7 +130,12 @@ class FreeSession(SessaoComBonusNovos, SessaoComCenarios, SessaoComMoedas, Class
         ganho = self.pontos - self.pontos_vistos
         self.pontos_vistos = self.pontos
         if ganho > 0:
+            marcos_antes = self.sequencia // SEQUENCIA_PARA_BONUS
             self.sequencia += ganho
+            marcos = self.sequencia // SEQUENCIA_PARA_BONUS - marcos_antes
+            if marcos > 0 and self.moedas_ativas:       # só desenho e carteira: nada de física
+                centro = self.passaro.retangulo().center
+                self.coletor.ganhar_bonus(BONUS_POR_SEQUENCIA * marcos, centro[0], centro[1] - 30, 'SEQUÊNCIA!')
             if self.sequencia > self.melhor_sequencia:
                 self.recordes[CHAVE_RECORDE] = self.sequencia
                 self.recorde_pendente = True

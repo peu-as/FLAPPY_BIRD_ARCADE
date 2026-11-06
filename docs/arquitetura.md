@@ -1,6 +1,6 @@
 # Arquitetura — Flappy Arcade
 
-Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
+Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · antes do commit: `python tools/verificar_jogo.py` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
 
 ## Pastas
 
@@ -75,6 +75,7 @@ tests/
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
   test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
+  test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
@@ -82,6 +83,7 @@ tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
   importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
+  verificar_jogo.py          verificação final antes do commit (todas as telas + testes)
   previa_artes.py            prévia para conferir tudo que foi importado (--previa X.png)
 assets/
   imgs/, audio/              artes e sons do jogo original
@@ -115,7 +117,7 @@ A física é por quadro e calibrada a 30 FPS, por isso a `GameScene` roda a 30 F
 | `DificuldadeOriginal` | `gameplay/difficulty.py` | 1 a 10 | jogo clássico (idêntico ao original) |
 | `CurvaDificuldade` | `gameplay/difficulty_curve.py` + `config/difficulty_profiles.py` | 1 a 25 | Modo Livre e mapas (casa N = nível N) |
 
-Na curva, o nível 1 é sempre o nível 1 original. Galaga e Donkey terminam no nível 10 original (o teto já testado); o Flappy vai um pouco além (gravidade 1,70, abertura 175 px, velocidade 6,2). Para balancear, edite só `config/difficulty_profiles.py` e rode `python -m pytest tests/test_difficulty_curve.py`.
+Na curva, o nível 1 é sempre o nível 1 original. Galaga e Donkey terminam no nível 10 original (o teto já testado); o Flappy vai um pouco além (gravidade 1,70, abertura 182 px, velocidade 6,2). Nos mapas, o chefão do Flappy é um degrau acima: abertura de 3 casas à frente e pássaros oscilando mais (`DificuldadeDaCasa`, `config/levels.py`). Para balancear, edite só `config/difficulty_profiles.py` e rode `python -m pytest tests/test_difficulty_curve.py`.
 
 ## Modo Livre
 
@@ -132,7 +134,8 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 ## Economia e skins
 
 - **Moedas** só no Modo Livre, nos mapas e na jornada (o clássico é o original). Flappy: no centro da passagem (por onde o jogador já passa). Galaga: caem soltas, opcionais. Donkey: cada banana vale moedas. O `ColetorMoedas` usa o próprio `random.Random`: nunca o `random` do jogo, senão mudaria a sequência dos canos (há um teste que pega isso).
-- **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus de `BONUS_POR_ESTRELA_NOVA` só por estrela nova.
+- **Quanto rende** (Fase 14): 0,9 de chance de moeda por passagem, uma moeda a cada 2 s na Galaga, 2 por banana, +10 a cada 10 pontos seguidos sem cair no Modo Livre e `20 + 2 × casa` por estrela nova. Os números e a lógica estão em `docs/balanceamento.md`.
+- **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus por estrela (`bonus_por_estrela(casa)`) só por estrela nova.
 - **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
 - **Skins** em três categorias: Clássicas (18, as da Fase 5), Fantasias (35 artes) e Times (32 artes). As artes (`tipo='arte'`) são carregadas só quando usadas (`Recursos.arte_skin`).
 - **Preços das skins**: comuns 50–200, raras 250–500, radicais 1000+ (`FAIXAS_PRECO`). Times 200; fantasias simples 120; detalhadas 350–500; radicais com efeito: Dinossauro 1200 (poeira), Fada 1500 (brilhos), Futurista 1800 (neon), Unicórnio 2000 (rastro arco-íris).
@@ -143,7 +146,7 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 
 As folhas ficam em `artes/` (`skins.png`, `times.png`, `cenarios.png`). O importador recorta cada personagem, tira o fundo (o que encosta na borda e os bolsões fechados da mesma cor), reduz para a grade de pixels do jogo (36 px de largura, 24 cores) e amplia 2x sem borrar; todos da mesma folha na mesma escala, alinhados pelo corpo. Cenários viram faixas de horizonte de 575 px; no jogo, `montar_retrato` apoia a faixa no chão e estende o céu com as cores do topo dela.
 
-Para acrescentar artes: ponha a folha em `artes/`, acrescente os nomes na tabela do importador (esquerda -> direita, cima -> baixo) e rode `python tools/importar_artes.py --previa previa.png` (precisa de `pip install -r requirements-dev.txt`). O relatório avisa tamanhos fora do padrão; `tests/test_assets.py` confere que tudo carrega. Personagens de terceiros (Link, Cavaleiro, Super Herói, Herói Vermelho) ficam de fora: na tabela, a posição deles é `None`.
+Passo a passo completo: [`docs/como_adicionar_artes.md`](como_adicionar_artes.md). Resumo: ponha a folha em `artes/`, acrescente os nomes na tabela do importador (esquerda -> direita, cima -> baixo) e rode `python tools/importar_artes.py --previa previa.png` (precisa de `pip install -r requirements-dev.txt`). O relatório avisa tamanhos fora do padrão; `tests/test_assets.py` confere que tudo carrega. Personagens de terceiros (Link, Cavaleiro, Super Herói, Herói Vermelho) ficam de fora: na tabela, a posição deles é `None`.
 
 ## Cenários nas fases
 
@@ -176,7 +179,7 @@ Os itens são pixel art desenhados por código (`DESENHOS`), do tamanho da área
 - **Loja** (`ShopScene(ctx, aba='skins'|'cenarios')`): abas com filtros (Clássicas, Fantasias, Times; Originais, Novos). A vitrine mostra a skin voando sobre o cenário: na aba Skins, a escolhida sobre o cenário em uso; na aba Cenários, o escolhido com a skin equipada. "Ver em" troca a prévia entre Flappy, Galaga e Donkey (as mesmas montagens do jogo). Teclas: setas, ENTER, TAB (aba), Q/E (filtro), V (vista), ESC.
 - Comprar pede confirmação. Skin comprada é equipada. Cenário comprado entra na playlist e, no modo fixo, vira o fixo. Cenário que já é seu: no fixo, USAR; no aleatório, PÔR/TIRAR DA PLAYLIST.
 - **Equipamentos** (menu principal e loja): FIXO ou ALEATÓRIO, cartões só dos cenários comprados (no aleatório, com caixinha e contador "N/15"), atalhos para a loja de cenários e para trocar a skin. Tudo vai para o save na hora.
-- **Miniaturas**: recortes do horizonte (156x88) guardados à parte (`GerenciadorCenarios.miniatura`), sem tirar os fundos grandes da memória; montadas no máximo 2 por quadro (`FilaMiniaturas`) para a tela abrir sem engasgo. As prévias da vitrine guardam as 6 últimas.
+- **Miniaturas**: recortes do horizonte (156x88) guardados à parte (`GerenciadorCenarios.miniatura`), sem tirar os fundos grandes da memória; montadas uma por quadro (`FilaMiniaturas`, `MINIATURAS_POR_QUADRO`) para a tela abrir sem engasgo. As prévias da vitrine guardam as 6 últimas.
 
 ## Pausa, configurações e música
 

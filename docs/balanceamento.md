@@ -1,3 +1,7 @@
+# Balanceamento e QA
+
+A **Fase 14** (no fim deste documento) recalibrou a economia, resolveu as quatro decisões da Fase 7 e refez a passagem de qualidade com as artes novas.
+
 # Fase 7 — QA e balanceamento
 
 Relatório da passagem final de qualidade e do primeiro balanceamento por dados. Todos os ajustes ficaram em arquivos de dados (`config/`), e o jogo clássico continua idêntico ao original (golden master).
@@ -73,3 +77,76 @@ python tools/playtest.py --habilidade casual --mapas galaga --tentativas 30
 ```
 
 Depois de mexer em `config/difficulty_profiles.py` ou em `config/levels.py`, a taxa de vitória deve cair de forma gradual, sem degraus entre casas vizinhas.
+
+
+---
+
+# Fase 14 — economia, decisões e QA final
+
+## 1. Economia (~3x a renda)
+
+A loja agora tem 85 skins e 31 cenários: **53.395 moedas** ao todo (31.645 em skins, 21.750 em cenários). Meta: completar os quatro mapas com 3 estrelas paga cerca de **1/3 da loja**; o resto vem do Modo Livre.
+
+| Regra (`config/economy.py`) | Fase 7 | Fase 14 |
+|---|---|---|
+| Chance de moeda na passagem | 0,6 | 0,9 |
+| Moeda na Galaga | a cada 3 s | a cada 2 s |
+| Moedas por banana (Donkey) | 1 | 2 |
+| Bônus por estrela nova | 10 fixo | `20 + 2 × casa` (22 na casa 1, 70 na casa 25) |
+| Bônus de sequência (Modo Livre) | — | +10 a cada 10 pontos seguidos sem cair ("+10 SEQUÊNCIA!") |
+
+| Medição | Fase 7 | Fase 14 |
+|---|---|---|
+| Modo Livre, jogador bom (robô experiente) | ~10 moedas/min | **~26 moedas/min** |
+| Modo Livre, jogador médio | — | ~16 moedas/min |
+| Bônus de estrelas, 4 mapas com 3 estrelas | 3.000 | **13.800** |
+| Mapas completos (estrelas + moedas coletadas) | ~3.700 (7% da loja) | **~15.500 a 17.000 (29–32% da loja)** |
+
+| Item | Preço | Modo Livre (jogador bom) | Pelos mapas |
+|---|---|---|---|
+| Fantasia simples | 120 | ~5 min | as 2 primeiras casas com 3 estrelas |
+| Time | 200 | ~8 min | ~3 casas |
+| Fantasia detalhada | 350–500 | 13–19 min | — |
+| Cenário novo | 600 / 900 / 1.300 | 23 / 34 / 49 min | — |
+| Radical | 1.000–2.500 | 38–95 min | — |
+| Loja inteira | 53.395 | ~23 h além dos mapas | — |
+
+Leitura: recompensa logo no começo, metas médias a cada sessão e a coleção completa como objetivo de longo prazo. Testes: `tests/test_balanceamento.py` confere a faixa de 20 a 40% e que as duas primeiras casas já compram uma fantasia simples.
+
+## 2. As quatro decisões da Fase 7
+
+| # | Decisão | O que foi feito | Resultado (robô experiente, 32 tentativas) |
+|---|---|---|---|
+| 1 | Chefões 15 e 20 do Flappy mais fáceis que as vizinhas | O chefão é **um degrau acima**: usa a abertura de 3 casas à frente, pássaros oscilam 1,5x (até 36 px) e a meta cresce +2 a cada chefão (`config/levels.py`) | 15: 69% → **47%** (vizinhas 28–56%) · 20: 31% → **9%** (vizinhas 9–22%) |
+| 2 | Casa 25 do Flappy em 0% | Teto da abertura aliviado: 175 → **182 px** (`config/difficulty_profiles.py`) | 25: 0% → **3%**; continua o desafio final |
+| 3 | Chefões da Galaga e Donkey Kong | **Mantidos.** O robô da Galaga morre demais nos mergulhos (só a forma da curva vale) e o Donkey não tem robô. Os chefões da Galaga soltam bônus nos marcos de 66% e 33% da vida | Para o seu teste: veja abaixo |
+| 4 | Ritmo da economia | Seção 1 | ~2,7x no Modo Livre, ~4x nos mapas |
+
+**Para o seu teste de jogo (decisão 3):** se o Boss Galaga das casas 5 e 10 parecer impossível sem bônus, diminua `chefe_hp` ou aumente `chefe_intervalo` em `GALAGA` (`config/difficulty_profiles.py`). Se as salvas de 3 barris do Donkey (casa 14 em diante) não derem tempo de reação, adie o degrau `14: 3` de `salva_max` ou baixe `chance_tres` em `DONKEY`; para o Kong Furioso, aumente `chefe_intervalo` ou adie o degrau de `chefe_barris`. Depois rode `python -m pytest tests/test_difficulty_curve.py`.
+
+### Curva final do Flappy
+
+| Casas | Vitória (robô experiente) | Leitura |
+|---|---|---|
+| 1–9 | 81–100% | aprendizado |
+| 10–13 | 41–75% | desafio começa (chefão 10: 66%) |
+| 14–19 | 22–47% | exige domínio (chefão 15: 47%) |
+| 20–25 | 0–12% | desafio final (chefões 20 e 25: 9% e 3%) |
+
+## 3. Qualidade
+
+| Item | Resultado |
+|---|---|
+| Suíte de testes | 456 testes, golden master do clássico incluído |
+| Desempenho, partidas (orçamento 33,3 ms) | Modo Livre + Galaga + bônus + cenários: média 5,6 ms; pior quadro isolado entre 26 e 36 ms conforme a medição, e 99% dos quadros abaixo de 13 ms. Donkey: média 3,7 ms, pior 20 ms |
+| Desempenho, menus (orçamento 16,7 ms) | Menu 1,9 ms, mapa 2,4 ms, Equipamentos 4,0 ms; loja: média 5,6 ms, 99% dos quadros abaixo de 17 ms. Pico único de 30–50 ms ao trocar a vista de um cenário pela primeira vez (montagem da prévia) |
+| Executável (PyInstaller) | Gera e abre (menu e Modo Livre); 67 skins e 20 cenários dentro; as folhas de `artes/` ficam de fora (~29 MB) |
+| Correções desta fase | `tools/playtest.py` não trava mais se um processo morrer (avisa e para); miniaturas da loja montadas uma por quadro |
+
+## 4. Antes de cada commit
+
+```
+python tools/verificar_jogo.py
+```
+
+Abre todas as telas sem janela, confere as artes e roda os testes; termina com **PRONTO PARA O COMMIT** ou com a lista do que corrigir.
