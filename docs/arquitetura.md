@@ -36,6 +36,7 @@ src/
       level_session.py       casas dos mapas: 3 vidas, estrelas; criar_sessao(mapa, casa)
       coins.py               moedas no jogo (ColetorMoedas) + mixin SessaoComMoedas
       skins.py               SkinVisual: desenha a skin no lugar do pássaro
+      scenery.py             cenários comprados: faixa de horizonte -> fundo de tela 575x860
       flappy.py              Passaro, Obstaculo, Chao
       galaga.py              fase Galaga e Boss Galaga
       donkey.py              fase Donkey Kong e Kong Furioso
@@ -64,9 +65,17 @@ tests/
   test_arcade.py             jornada Arcade: tabela, sessões por casa, mapa
   test_economy.py            carteira, loja, skins, moedas; moedas/skin não mudam a física
   test_polish.py             pausa, configurações, reset, menu, música, transições
+  test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
+  importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
+  previa_artes.py            prévia para conferir tudo que foi importado (--previa X.png)
+assets/
+  imgs/, audio/              artes e sons do jogo original
+  skins/                     67 skins importadas (35 fantasias + 32 times), pixel art 2x
+  cenarios/                  20 faixas de horizonte com 575 px de largura
+artes/                       folhas originais (fora de assets/, não vão no executável)
   test_*.py                  save, configurações, áudio, cenas, janela, App
 ```
 
@@ -114,6 +123,12 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 - **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus de `BONUS_POR_ESTRELA_NOVA` só por estrela nova.
 - **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
 - **Preços**: comuns 50–100, raras 250–500, radicais 1000+ (`config/skins.py`, verificado por teste).
+
+## Artes novas (skins e cenários)
+
+As folhas ficam em `artes/` (`skins.png`, `times.png`, `cenarios.png`). O importador recorta cada personagem, tira o fundo (o que encosta na borda e os bolsões fechados da mesma cor), reduz para a grade de pixels do jogo (36 px de largura, 24 cores) e amplia 2x sem borrar; todos da mesma folha na mesma escala, alinhados pelo corpo. Cenários viram faixas de horizonte de 575 px; no jogo, `montar_retrato` apoia a faixa no chão e estende o céu com as cores do topo dela.
+
+Para acrescentar artes: ponha a folha em `artes/`, acrescente os nomes na tabela do importador (esquerda -> direita, cima -> baixo) e rode `python tools/importar_artes.py --previa previa.png` (precisa de `pip install -r requirements-dev.txt`). O relatório avisa tamanhos fora do padrão; `tests/test_assets.py` confere que tudo carrega. Personagens de terceiros (Link, Cavaleiro, Super Herói, Herói Vermelho) ficam de fora: na tabela, a posição deles é `None`.
 
 ## Pausa, configurações e música
 
