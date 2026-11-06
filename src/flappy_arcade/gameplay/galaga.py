@@ -982,8 +982,16 @@ class FaseGalaga:
             return 'Cuidado com o RAIO TRATOR: saia de baixo dele!'
         return ''
 
+    cenario = None      # CenarioNaFase nas sessões com cenários comprados (o clássico não tem)
+
+    def desenhar_fundo(self, tela):
+        if self.cenario is None:
+            tela.fill((6, 6, 28))
+        else:
+            self.cenario.desenhar_galaga(tela, self.estagio == 'CHEFE', self.tempo_estagio)
+
     def desenhar(self, tela):
-        tela.fill((6, 6, 28))
+        self.desenhar_fundo(tela)
         for x, y, velocidade, tamanho in self.estrelas:
             brilho = min(255, 100 + int(velocidade))
             pygame.draw.rect(tela, (brilho, brilho, brilho),

@@ -719,16 +719,25 @@ class FaseDonkey:
             self._atualizar_chefe(dt, passaro)
 
     # Desenho
-    def desenhar(self, tela, passaro):
-        """Desenha, de trás para frente: céu, palmeiras, Kong, obstáculos,
-        barris, bananas/rebites, chamas, chão e, por último, o pássaro."""
+    cenario = None      # CenarioNaFase nas sessões com cenários comprados (o clássico não tem)
+
+    def desenhar_fundo(self, tela):
         r = self.recursos
-        tela.blit(r.fundo_selva, (0, 0))
+        if self.cenario is None:
+            tela.blit(r.fundo_selva, (0, 0))
+        else:
+            self.cenario.desenhar_donkey(tela, self.rolagem)
         # Parallax: camadas distantes andam mais devagar que as próximas.
         for camada, fator in ((r.palmeiras_longe, 0.15), (r.palmeiras_perto, 0.35)):
             x = -int(self.rolagem*fator) % LARGURA
             tela.blit(camada, (x - LARGURA, 0))
             tela.blit(camada, (x, 0))
+
+    def desenhar(self, tela, passaro):
+        """Desenha, de trás para frente: céu, palmeiras, Kong, obstáculos,
+        barris, bananas/rebites, chamas, chão e, por último, o pássaro."""
+        r = self.recursos
+        self.desenhar_fundo(tela)
         self._desenhar_kong(tela)
         for obstaculo in self.obstaculos:
             obstaculo.desenhar(tela)

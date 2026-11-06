@@ -14,7 +14,7 @@ from collections import OrderedDict
 
 import pygame
 
-from ..config.constants import ALTURA, LARGURA, TEMPO_TEMA, Y_CHAO
+from ..config.constants import ALTURA, LARGURA, TEMPO_TEMA, Y_CHAO, Y_NAVE
 from ..config.scenarios import ORIGINAL, POR_ID
 from ..core.paths import ARTES_CENARIOS
 from .flappy import Obstaculo
@@ -65,6 +65,7 @@ class GerenciadorCenarios:
         self.recursos = recursos
         self.limite = limite
         self._prontos = OrderedDict()
+        self._variantes = OrderedDict()   # versões Galaga/Donkey: só as da fase da vez
         self.montagens = 0           # quantas vezes um fundo foi montado (testes)
 
     def fundo(self, cenario_id):
@@ -81,6 +82,20 @@ class GerenciadorCenarios:
     @property
     def em_memoria(self):
         return list(self._prontos)
+
+    def variante(self, cenario_id, tipo):
+        """'galaga', 'galaga_chefe' ou 'donkey', montada uma vez por fase."""
+        chave = (cenario_id, tipo)
+        if chave not in self._variantes:
+            retrato = self.fundo(cenario_id)
+            r = self.recursos
+            self._variantes[chave] = (visual_donkey(retrato, r.banana) if tipo == 'donkey'
+                                      else visual_galaga(retrato, r.nave, chefe=tipo == 'galaga_chefe'))
+            while len(self._variantes) > 2:          # galaga + galaga_chefe, ou donkey
+                self._variantes.popitem(last=False)
+        else:
+            self._variantes.move_to_end(chave)
+        return self._variantes[chave]
 
     def _montar(self, cenario):
         if cenario.tipo == ORIGINAL:
@@ -150,7 +165,8 @@ class SessaoComCenarios:
     """Mixin: os cenários do jogador no lugar do ciclo de fundos do original.
 
     Uso: class FreeSession(SessaoComCenarios, SessaoComMoedas, ClassicSession).
-    Só muda o desenho e a cor dos canos e do pássaro (pelo período); a física,
+    Só muda o desenho (fundo do Flappy e, adaptado, o da Galaga e do Donkey) e a
+    cor dos canos e do pássaro (pelo período); a física,
     o tempo e os sorteios dos canos continuam os do original. Sem diretor
     (preparar_cenarios não chamado), tudo fica exatamente como no clássico.
     """
@@ -189,3 +205,143 @@ class SessaoComCenarios:
         if self.diretor is None:
             return super().desenhar_fundo()
         self.diretor.desenhar(self.tela, self.efeitos_cenario)
+
+    def desenhar(self):
+        if self.diretor is not None and self.estado == 'ALERTA' and self.variante_alerta:
+            # prepara a versão da fase durante o alerta de 5 s: a entrada não engasga
+            tipo = 'galaga' if self.variante_alerta == 'GALAGA' else 'donkey'
+            self.diretor.gerenciador.variante(self.diretor.atual, tipo)
+        if self.diretor is not None:              # fases bônus: o cenário da vez, adaptado
+            for fase in (getattr(self, 'galaga', None), getattr(self, 'donkey', None)):
+                if fase is not None and fase.cenario is None:
+                    fase.cenario = CenarioNaFase(self.diretor.gerenciador, self.diretor.atual)
+        super().desenhar()
+
+
+# ---------------------------------------------------------------- Galaga e Donkey
+COR_ESPACO = (6, 6, 28)               # o fundo original da Galaga
+GALAGA_INICIO_HORIZONTE = 380         # acima disso é só espaço (onde a formação voa)
+GALAGA_FIM_DEGRADE = 640              # daqui para baixo o horizonte aparece inteiro
+GALAGA_COR_NOITE = (14, 18, 60)
+GALAGA_ESCURECER_MINIMO = 0.50        # quanto o horizonte puxa, no mínimo, para o azul do espaço
+GALAGA_A_MAIS_NO_CHEFE = 0.24         # no chefão o mundo lá embaixo fica mais longe
+DONKEY_TINTA = (10, 40, 44)           # selva à noite: puxa tudo para o verde-escuro
+DONKEY_TINGIR_MINIMO = 0.58
+DONKEY_PARALLAX = 0.05                # o cenário anda mais devagar que as palmeiras (0,15 e 0,35)
+ESCURECER_MAXIMO = 0.90
+PASSO_ESCURECER = 0.04
+SEGUNDOS_ESCURECER_CHEFE = 1.0
+
+# Leitura: o que o jogador precisa ver deve ter contraste de pelo menos 3:1
+# (o mínimo das diretrizes de acessibilidade para elementos gráficos) com o
+# fundo logo atrás dele. Cenário claro escurece mais; escuro fica como está.
+CONTRASTE_MINIMO = 3.0
+FAIXA_NAVE = pygame.Rect(0, Y_NAVE - 40, LARGURA, 80)       # por onde a nave anda
+AREA_DONKEY = pygame.Rect(0, 120, LARGURA, Y_CHAO - 120)    # onde passam barris, bananas e o pássaro
+
+
+def luminancia(cor):
+    """Luminância relativa (0 = preto, 1 = branco), como nas diretrizes de acessibilidade."""
+    canais = []
+    for c in cor[:3]:
+        c /= 255
+        canais.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * canais[0] + 0.7152 * canais[1] + 0.0722 * canais[2]
+
+
+def luminancia_media(superficie, rect=None):
+    return luminancia(pygame.transform.average_color(superficie, rect or superficie.get_rect()))
+
+
+def luminancia_sprite(sprite):
+    """Luminância média só dos pixels visíveis do sprite."""
+    mascara = pygame.mask.from_surface(sprite)
+    soma = [0, 0, 0]
+    for x, y in ((x, y) for x in range(sprite.get_width()) for y in range(sprite.get_height())
+                 if mascara.get_at((x, y))):
+        cor = sprite.get_at((x, y))
+        for i in range(3):
+            soma[i] += cor[i]
+    total = max(1, mascara.count())
+    return luminancia([v / total for v in soma])
+
+
+def contraste(l1, l2):
+    return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+
+
+def _misturar(superficie, cor, quanto):
+    """Puxa a superfície para `cor` (0 = nada, 1 = só a cor)."""
+    camada = pygame.Surface(superficie.get_size())
+    camada.fill(cor)
+    camada.set_alpha(round(255 * quanto))
+    resultado = superficie.copy()
+    resultado.blit(camada, (0, 0))
+    return resultado
+
+
+def _escurecer_ate_ler(superficie, cor, minimo, rect, alvo):
+    """Mistura com `cor` a partir de `minimo`, aumentando até a luminância em
+    `rect` ficar <= `alvo` (ou chegar a ESCURECER_MAXIMO)."""
+    quanto = minimo
+    while True:
+        resultado = _misturar(superficie, cor, quanto)
+        if luminancia_media(resultado, rect) <= alvo or quanto >= ESCURECER_MAXIMO:
+            return resultado, quanto
+        quanto = min(ESCURECER_MAXIMO, quanto + PASSO_ESCURECER)
+
+
+def _alvo(luminancia_do_que_precisa_aparecer):
+    """Luminância máxima do fundo para o contraste ficar >= CONTRASTE_MINIMO."""
+    return (luminancia_do_que_precisa_aparecer + 0.05) / CONTRASTE_MINIMO - 0.05
+
+
+def visual_galaga(retrato, nave, chefe=False):
+    """Decolagem: o seu mundo fica lá embaixo e se dissolve no espaço."""
+    mundo = pygame.Surface((LARGURA, ALTURA))
+    mundo.blit(retrato, (0, ALTURA - Y_CHAO))            # o horizonte desce até a borda de baixo
+    mundo, quanto = _escurecer_ate_ler(mundo, GALAGA_COR_NOITE, GALAGA_ESCURECER_MINIMO,
+                                       FAIXA_NAVE, _alvo(luminancia_sprite(nave)))
+    if chefe:
+        mundo = _misturar(mundo, GALAGA_COR_NOITE, GALAGA_A_MAIS_NO_CHEFE)
+    tela = pygame.Surface((LARGURA, ALTURA))
+    tela.fill(COR_ESPACO)
+    altura = GALAGA_FIM_DEGRADE - GALAGA_INICIO_HORIZONTE
+    for y in range(GALAGA_INICIO_HORIZONTE, ALTURA):
+        linha = mundo.subsurface((0, y, LARGURA, 1))
+        linha.set_alpha(min(255, round(255 * ((y - GALAGA_INICIO_HORIZONTE) / altura) ** 1.6)))
+        tela.blit(linha, (0, y))
+    return tela
+
+
+def visual_donkey(retrato, banana):
+    """Selva sobre o seu mundo: o cenário no lugar do céu, tingido de selva à noite.
+    Volta espelhado (largura dupla) para rolar sem emenda."""
+    tingido, _ = _escurecer_ate_ler(retrato, DONKEY_TINTA, DONKEY_TINGIR_MINIMO,
+                                    AREA_DONKEY, _alvo(luminancia_sprite(banana)))
+    faixa = pygame.Surface((LARGURA * 2, ALTURA))
+    faixa.blit(tingido, (0, 0))
+    faixa.blit(pygame.transform.flip(tingido, True, False), (LARGURA, 0))
+    return faixa
+
+
+class CenarioNaFase:
+    """O cenário da partida dentro das fases bônus (entregue pela sessão)."""
+
+    def __init__(self, gerenciador, cenario_id):
+        self.gerenciador = gerenciador
+        self.id = cenario_id
+
+    def desenhar_galaga(self, tela, chefe=False, tempo_chefe=0.0):
+        tela.blit(self.gerenciador.variante(self.id, 'galaga'), (0, 0))
+        if chefe:
+            escuro = self.gerenciador.variante(self.id, 'galaga_chefe')
+            escuro.set_alpha(round(255 * min(1.0, tempo_chefe / SEGUNDOS_ESCURECER_CHEFE)))
+            tela.blit(escuro, (0, 0))
+            escuro.set_alpha(None)
+
+    def desenhar_donkey(self, tela, rolagem):
+        faixa = self.gerenciador.variante(self.id, 'donkey')
+        x = -int(rolagem * DONKEY_PARALLAX) % faixa.get_width()
+        tela.blit(faixa, (x - faixa.get_width(), 0))
+        tela.blit(faixa, (x, 0))

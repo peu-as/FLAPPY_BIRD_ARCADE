@@ -70,7 +70,8 @@ tests/
   test_polish.py             pausa, configurações, reset, menu, música, transições
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
-  test_scenery.py            cenários nas fases: memória, trocas, transição, física idêntica
+  test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
+                             contraste nos 31 cenários, física idêntica
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
@@ -146,7 +147,9 @@ Modo Livre, mapas e jornada usam os cenários do jogador no Flappy; o clássico 
 - `DiretorCenarios`: no fixo, mostra um; no aleatório, troca a cada 20 s de jogo (os mesmos `TEMPO_TEMA` do original), nunca repete o anterior, dissolve em ~1 s (sem efeitos visuais, troca seca) e já monta o próximo antes da hora. Usa o próprio `random.Random`.
 - `GerenciadorCenarios` (`ctx.resources.cenarios`): monta cada fundo sob demanda (~5 ms) e guarda só 3 (atual, anterior e próximo), seja qual for o tamanho da playlist.
 - As cenas chamam `preparar_cenarios` em `preparar_recompensas` (`scenes/game_scene.py`), com `ctx.scenarios.ativos()`.
-- Galaga e Donkey desenham o próprio fundo; a adaptação dos cenários a elas é a Fase 11.
+- **Galaga ("Decolagem")**: o horizonte do cenário fica embaixo e se dissolve no espaço original; a formação continua voando no espaço puro. No chefão, o mundo escurece mais em 1 s. **Donkey ("Selva sobre o seu mundo")**: o cenário substitui o céu, tingido de selva à noite, atrás das duas camadas de palmeiras; rola a 0,05 (palmeiras a 0,15 e 0,35), espelhado para não ter emenda.
+- **Leitura garantida (exposição automática)**: cada cenário escurece só o necessário para a nave (faixa da nave) e as bananas (área de jogo do Donkey) terem contraste de pelo menos 3:1 com o fundo (`CONTRASTE_MINIMO`, o mínimo das diretrizes de acessibilidade para elementos gráficos). `tests/test_scenery.py` mede isso nos 31 cenários; cenário novo que não passar é escurecido sozinho.
+- As versões das fases são montadas uma vez (~28 ms), durante o alerta de 5 s que antecede a fase, e só as da fase da vez ficam na memória. Sem cenário (clássico), `FaseGalaga.desenhar_fundo` e `FaseDonkey.desenhar_fundo` desenham exatamente o original.
 
 ## Pausa, configurações e música
 

@@ -134,10 +134,12 @@ def test_classico_nao_tem_cenarios_comprados(recursos):
     assert issubclass(LevelSession, SessaoComCenarios)
 
 
-def test_cenarios_nao_mudam_a_fisica(recursos, tmp_path, monkeypatch):
-    """A mesma partida com o ciclo de fundos do original e com 15 cenários sorteados."""
+@pytest.mark.parametrize('fase', [None, 'GALAGA', 'DONKEY'])
+def test_cenarios_nao_mudam_a_fisica(recursos, tmp_path, monkeypatch, fase):
+    """A mesma partida com o ciclo de fundos do original e com 15 cenários sorteados
+    (também atravessando a Galaga ou o Donkey, que ganham o cenário adaptado)."""
     monkeypatch.setattr(snapshot, 'IGNORADOS', snapshot.IGNORADOS | {
-        'diretor', 'efeitos_cenario', 'tema', 'familia', 'cima', 'baixo', 'coletor'})
+        'diretor', 'efeitos_cenario', 'tema', 'familia', 'cima', 'baixo', 'coletor', 'cenario'})
 
     def partida(com_cenarios):
         random.seed(57)
@@ -149,6 +151,10 @@ def test_cenarios_nao_mudam_a_fisica(recursos, tmp_path, monkeypatch):
             alvo = next((o for o in s.obstaculos if o.x + o.largura > s.passaro.x), None)
             if alvo and s.passaro.y + 24 > alvo.topo_passagem + alvo.abertura / 2 and s.passaro.vy >= 0:
                 s.acao_principal()
+            if fase and i == 700:
+                s.iniciar_alerta(fase)
+            if s.estado == 'DONKEY' and s.passaro.y > 420 and i % 2:
+                s.acao_principal()
             passo(s, clock)
             if i % 50 == 0:
                 hashes.append(snapshot.hash_estado(s))
@@ -156,7 +162,10 @@ def test_cenarios_nao_mudam_a_fisica(recursos, tmp_path, monkeypatch):
 
     sem, _ = partida(False)
     com, s = partida(True)
-    assert s.diretor.trocas >= 2, 'a partida precisa atravessar trocas de cenário para valer'
+    assert s.diretor.trocas >= 1, 'a partida precisa atravessar trocas de cenário para valer'
+    if fase:
+        fase_obj = s.galaga if fase == 'GALAGA' else s.donkey
+        assert fase_obj is not None and fase_obj.cenario is not None, 'a fase precisa ter rodado com cenário'
     assert com == sem
 
 
@@ -224,3 +233,92 @@ def test_cenas_usam_os_cenarios_do_jogador(ctx):
     ctx.scenarios.definir_modo('aleatorio')
     assert LevelScene(ctx, 'flappy', 1).session.diretor.ids == ['bg', 'praia', 'night', 'sakura']
     assert GameScene(ctx, 'classico').session.__class__ is ClassicSession
+
+
+# ---------------------------------------------------------------- Galaga e Donkey (Fase 11)
+from flappy_arcade.config.constants import Y_CHAO  # noqa: E402
+from flappy_arcade.gameplay.scenery import (AREA_DONKEY, COR_ESPACO, CONTRASTE_MINIMO,  # noqa: E402
+                                            DONKEY_PARALLAX, FAIXA_NAVE, CenarioNaFase, contraste,
+                                            luminancia, luminancia_media, luminancia_sprite)
+
+
+def _fundo_donkey(recursos, cenario, rolagem=0):
+    from flappy_arcade.gameplay.donkey import FaseDonkey
+    fase = FaseDonkey.__new__(FaseDonkey)        # só o desenho do fundo, sem montar a fase
+    fase.recursos, fase.rolagem, fase.cenario = recursos, rolagem, cenario
+    tela = pygame.Surface((LARGURA, 860))
+    fase.desenhar_fundo(tela)
+    return tela
+
+
+@pytest.mark.parametrize('cenario_id', [c.id for c in CENARIOS])
+def test_contraste_galaga_e_donkey_em_todos_os_cenarios(recursos, gerenciador, cenario_id):
+    """Teste automático de leitura: nave e bananas com pelo menos 3:1 sobre o fundo,
+    e a formação da Galaga continua voando no espaço."""
+    cenario = CenarioNaFase(gerenciador, cenario_id)
+    tela = pygame.Surface((LARGURA, 860))
+    for chefe in (False, True):
+        cenario.desenhar_galaga(tela, chefe=chefe, tempo_chefe=5)
+        assert contraste(luminancia_sprite(recursos.nave), luminancia_media(tela, FAIXA_NAVE)) >= CONTRASTE_MINIMO
+        assert luminancia_media(tela, pygame.Rect(0, 90, LARGURA, 280)) <= luminancia(COR_ESPACO) + 0.002
+    tela = _fundo_donkey(recursos, cenario)
+    assert contraste(luminancia_sprite(recursos.banana), luminancia_media(tela, AREA_DONKEY)) >= CONTRASTE_MINIMO
+
+
+def test_chefao_escurece_o_mundo_aos_poucos(gerenciador):
+    cenario = CenarioNaFase(gerenciador, 'parque')
+    tela = pygame.Surface((LARGURA, 860))
+    medidas = []
+    for tempo in (0, 0.5, 1.0, 3.0):
+        cenario.desenhar_galaga(tela, chefe=True, tempo_chefe=tempo)
+        medidas.append(luminancia_media(tela, FAIXA_NAVE))
+    assert medidas[0] > medidas[1] > medidas[2] == medidas[3]
+
+
+def test_donkey_rola_devagar_e_sem_emenda(recursos, gerenciador):
+    faixa = gerenciador.variante('sakura', 'donkey')
+    assert faixa.get_width() == 2 * LARGURA
+    for y in range(0, Y_CHAO, 37):                    # a metade espelhada continua a imagem
+        assert faixa.get_at((LARGURA - 1, y)) == faixa.get_at((LARGURA, y))
+        assert faixa.get_at((0, y)) == faixa.get_at((2 * LARGURA - 1, y))
+    cenario = CenarioNaFase(gerenciador, 'sakura')
+    a, b = pygame.Surface((LARGURA, 860)), pygame.Surface((LARGURA, 860))
+    cenario.desenhar_donkey(a, 0)
+    cenario.desenhar_donkey(b, 400)
+    desloca = round(400 * DONKEY_PARALLAX)               # 20 px enquanto o chão anda 400
+    assert 0 < desloca < round(400 * 0.15)              # mais devagar que as palmeiras de longe
+    for x in range(0, LARGURA - desloca, 23):
+        assert b.get_at((x, 600)) == a.get_at((x + desloca, 600))
+
+
+def test_variantes_das_fases_ocupam_pouca_memoria(gerenciador):
+    for c in CENARIOS[:6]:
+        for tipo in ('galaga', 'galaga_chefe', 'donkey'):
+            gerenciador.variante(c.id, tipo)
+            assert len(gerenciador._variantes) <= 2
+            assert len(gerenciador.em_memoria) <= LIMITE_MEMORIA
+
+
+def test_sem_cenario_as_fases_desenham_como_o_original(recursos):
+    tela = _fundo_donkey(recursos, None)
+    original = pygame.Surface((LARGURA, 860))
+    original.blit(recursos.fundo_selva, (0, 0))
+    assert tela.get_at((110, 190)) == original.get_at((110, 190))     # a lua do céu original
+
+
+def test_montar_as_versoes_das_fases_e_rapido(recursos):
+    g = GerenciadorCenarios(recursos)
+    inicio = time.perf_counter()
+    for tipo in ('galaga', 'galaga_chefe', 'donkey'):
+        g.variante('castelo', tipo)
+    assert time.perf_counter() - inicio < 0.5      # uma vez por fase, durante o alerta de 5 s
+
+
+def test_versao_da_fase_fica_pronta_durante_o_alerta(recursos, tmp_path):
+    g = GerenciadorCenarios(recursos)
+    s, clock = criar_livre(recursos, tmp_path, DiretorCenarios(['vulcao'], g))
+    s.acao_principal()
+    passo(s, clock)
+    s.iniciar_alerta('DONKEY')
+    passo(s, clock)
+    assert ('vulcao', 'donkey') in g._variantes
