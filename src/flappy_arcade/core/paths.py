@@ -44,6 +44,8 @@ RAIZ_DADOS = _raiz_dados()
 
 IMAGENS = RAIZ_RECURSOS / 'assets' / 'imgs'
 AUDIOS = RAIZ_RECURSOS / 'assets' / 'audio'
+ARTES_SKINS = RAIZ_RECURSOS / 'assets' / 'skins'          # tools/importar_artes.py
+ARTES_CENARIOS = RAIZ_RECURSOS / 'assets' / 'cenarios'
 
 PASTA_DADOS = RAIZ_DADOS / 'data'
 ARQUIVO_RECORDE = PASTA_DADOS / 'recorde.json'   # formato antigo, só leitura

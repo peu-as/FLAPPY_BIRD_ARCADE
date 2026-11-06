@@ -1,14 +1,18 @@
 """Save do jogador: um único JSON versionado, à prova de falhas.
 
-Formato (versão 1):
+Formato (versão 2):
     {
-      "version": 1,
-      "settings": {"music": true, "sfx": true, "visual_fx": true},
-      "wallet":   {"coins": 0},
-      "skins":    {"owned": ["classico"], "equipped": "classico"},
-      "progress": {},           # por mapa: casas liberadas e estrelas (Fase 3)
-      "records":  {"free_best_streak": 0}   # Modo Livre: maior sequência sem cair
+      "version": 2,
+      "settings":  {"music": true, "sfx": true, "visual_fx": true},
+      "wallet":    {"coins": 0},
+      "skins":     {"owned": ["classico"], "equipped": "classico"},
+      "scenarios": {"owned": ["bg"], "mode": "fixo", "fixed": "bg", "playlist": ["bg"]},
+      "progress":  {},          # por mapa: casas liberadas e estrelas
+      "records":   {"free_best_streak": 0}   # Modo Livre: maior sequência sem cair
     }
+
+Versão 2 (Fase 9): cenários compráveis. Quem vem da versão 1 mantém tudo
+(moedas, skins, estrelas) e começa só com o cenário básico.
 
 Garantias:
   * escrita atômica: grava num .tmp e troca de uma vez (os.replace), então
@@ -26,13 +30,14 @@ import shutil
 import time
 from pathlib import Path
 
-VERSAO_ATUAL = 1
+VERSAO_ATUAL = 2
 
 PADRAO = {
     'version': VERSAO_ATUAL,
     'settings': {'music': True, 'sfx': True, 'visual_fx': True},
     'wallet': {'coins': 0},
     'skins': {'owned': ['classico'], 'equipped': 'classico'},
+    'scenarios': {'owned': ['bg'], 'mode': 'fixo', 'fixed': 'bg', 'playlist': ['bg']},
     'progress': {},
     'records': {'free_best_streak': 0},
 }
@@ -41,6 +46,7 @@ PADRAO = {
 # Ao mudar o formato: aumente VERSAO_ATUAL e registre a função aqui.
 MIGRACOES = {
     0: lambda dados: {**dados, 'version': 1},
+    1: lambda dados: {**dados, 'scenarios': copy.deepcopy(PADRAO['scenarios'])},
 }
 
 
@@ -137,7 +143,7 @@ class SaveManager:
         return self.data[nome]
 
     def reset_progress(self):
-        """Zera moedas, skins e mapas; mantém as configurações."""
+        """Zera moedas, skins, cenários e mapas; mantém as configurações."""
         configuracoes = self.data['settings']
         self.data = copy.deepcopy(PADRAO)
         self.data['settings'] = configuracoes

@@ -20,7 +20,8 @@ src/
       difficulty_profiles.py curva de 25 níveis: Rampa/Degraus por parâmetro
       levels.py              mapas de 25 casas + jornada Arcade (capítulos e etapas)
       economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
-      skins.py               catálogo de skins: raridade, preço, cores, efeitos
+      skins.py               catálogo de skins: categorias, raridade, preço, cores, efeitos
+      scenarios.py           catálogo de cenários: preço, período (dia/tarde/noite), arquivo
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
@@ -30,6 +31,7 @@ src/
       progress.py            estrelas por casa; casas liberadas em sequência
       economy.py             Carteira (saldo de moedas)
       shop.py                Loja: comprar e equipar skins
+      scenarios.py           ColecaoCenarios: comprar cenários, fixo ou playlist aleatória
     gameplay/                o jogo original, reorganizado
       classic_session.py     estados, ciclo de níveis, entrada e telas
       free_mode.py           Modo Livre: sem vidas, dificuldade pelo tempo
@@ -66,6 +68,7 @@ tests/
   test_economy.py            carteira, loja, skins, moedas; moedas/skin não mudam a física
   test_polish.py             pausa, configurações, reset, menu, música, transições
   test_assets.py             artes importadas: todas presentes, carregam, cabem no jogo
+  test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
@@ -122,7 +125,10 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 - **Moedas** só no Modo Livre, nos mapas e na jornada (o clássico é o original). Flappy: no centro da passagem (por onde o jogador já passa). Galaga: caem soltas, opcionais. Donkey: cada banana vale moedas. O `ColetorMoedas` usa o próprio `random.Random`: nunca o `random` do jogo, senão mudaria a sequência dos canos (há um teste que pega isso).
 - **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus de `BONUS_POR_ESTRELA_NOVA` só por estrela nova.
 - **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
-- **Preços**: comuns 50–100, raras 250–500, radicais 1000+ (`config/skins.py`, verificado por teste).
+- **Skins** em três categorias: Clássicas (18, as da Fase 5), Fantasias (35 artes) e Times (32 artes). As artes (`tipo='arte'`) são carregadas só quando usadas (`Recursos.arte_skin`).
+- **Preços das skins**: comuns 50–200, raras 250–500, radicais 1000+ (`FAIXAS_PRECO`). Times 200; fantasias simples 120; detalhadas 350–500; radicais com efeito: Dinossauro 1200 (poeira), Fada 1500 (brilhos), Futurista 1800 (neon), Unicórnio 2000 (rastro arco-íris).
+- **Cenários** (`config/scenarios.py`): 31 no total. Só o `bg` é de graça. Os 10 outros fundos originais custam 150–400 (noite e entardecer mais caros); os 20 novos custam 600, 900 ou 1300. Cada um tem um período, que decide a cor dos canos e dos pássaros quando ele estiver na tela. O clássico não usa este catálogo.
+- **Coleção de cenários** (`ctx.scenarios`): modo `fixo` (um cenário) ou `aleatorio` (playlist de até 15). Cenário comprado entra na playlist se houver vaga. A playlist nunca fica vazia; dados estragados no save são consertados na leitura.
 
 ## Artes novas (skins e cenários)
 
@@ -133,7 +139,7 @@ Para acrescentar artes: ponha a folha em `artes/`, acrescente os nomes na tabela
 ## Pausa, configurações e música
 
 - **Pausa** (`P`, `ESC` ou a janela perdendo o foco) só com a partida em andamento: no menu, no cadastro e no game over do clássico as teclas fazem o que faziam. A pausa é uma cena por cima; como só o topo é atualizado, a partida congela sozinha.
-- **Configurações** abrem do menu principal e da pausa. Resetar apaga moedas, skins, estrelas e recordes do Modo Livre; mantém configurações e o ranking do clássico. O foco começa em CANCELAR.
+- **Configurações** abrem do menu principal e da pausa. Resetar apaga moedas, skins, cenários, estrelas e recordes do Modo Livre; mantém configurações e o ranking do clássico. O foco começa em CANCELAR.
 - **Música:** `musica_menu.wav` (menus, mapas, loja) e `musica_jogo.wav` (casas e Modo Livre). O clássico não tem música, como o original. Para mudar as músicas, edite as tabelas em `tools/gerar_musica.py` e rode `python tools/gerar_musica.py`.
 - **Transições:** ao trocar de tela, o último quadro se dissolve em ~0,2 s (`Motion.SCENE_FADE_MS`); sem efeitos visuais, a troca é seca.
 
@@ -144,12 +150,15 @@ Fontes (`ui/theme.py: Fonts`) e textos prontos (`ui/widgets.py`) ficam em cache 
 ## Save (`data/save.json`)
 
 ```json
-{ "version": 1,
-  "settings": {"music": true, "sfx": true, "visual_fx": true},
-  "wallet":   {"coins": 0},
-  "skins":    {"owned": ["classico", "azul"], "equipped": "azul"},
-  "progress": {"flappy": {"estrelas": [3, 2, 0, ...]}},
-  "records":  {"free_best_streak": 0} }
+{ "version": 2,
+  "settings":  {"music": true, "sfx": true, "visual_fx": true},
+  "wallet":    {"coins": 0},
+  "skins":     {"owned": ["classico", "azul"], "equipped": "azul"},
+  "scenarios": {"owned": ["bg", "praia"], "mode": "aleatorio", "fixed": "bg", "playlist": ["bg", "praia"]},
+  "progress":  {"flappy": {"estrelas": [3, 2, 0, ...]}},
+  "records":   {"free_best_streak": 0} }
 ```
+
+Versão 2 (Fase 9): a migração 1 → 2 só acrescenta `scenarios` com o cenário básico; moedas, skins e estrelas ficam como estavam.
 
 Mudou o formato? Aumente `VERSAO_ATUAL` e registre a migração em `MIGRACOES` (`save_manager.py`). Seções novas com valor padrão (como `records`) não precisam de migração: o save as completa sozinho.

@@ -2,7 +2,7 @@
 import pygame
 
 from ..config.constants import PASSAROS_ESPECIAIS, TAMANHO_INIMIGO, TAMANHO_NAVE, TEMAS
-from ..core.paths import AUDIOS, IMAGENS
+from ..core.paths import ARTES_SKINS, AUDIOS, IMAGENS
 from .procedural import (
     criar_banana,
     criar_barril_rolante,
@@ -117,3 +117,10 @@ class Recursos:
             'morte':'die.wav', 'inicio':'chiptune_begin.mp3',
             'fim':'game_over.mp3', 'arcade':'game_over_arcade.mp3'
         }.items()}
+        self._artes_skins = {}
+
+    def arte_skin(self, nome):
+        """Arte importada de assets/skins (carregada só quando alguém usa)."""
+        if nome not in self._artes_skins:
+            self._artes_skins[nome] = pygame.image.load(str(ARTES_SKINS / f'{nome}.png')).convert_alpha()
+        return self._artes_skins[nome]

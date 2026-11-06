@@ -18,6 +18,7 @@ from ..systems.audio_manager import AudioManager
 from ..systems.economy import Carteira
 from ..systems.progress import ProgressStore
 from ..systems.save_manager import SaveManager
+from ..systems.scenarios import ColecaoCenarios
 from ..systems.settings_store import SettingsStore
 from ..systems.shop import Loja
 from .clock import GameClock
@@ -44,6 +45,7 @@ class AppContext:
     progress: ProgressStore
     wallet: Carteira
     shop: Loja
+    scenarios: ColecaoCenarios
 
 
 class App:
@@ -61,7 +63,8 @@ class App:
             window=self.window, resources=recursos, save=save, settings=settings,
             audio=AudioManager(settings, recursos.sons, bus), bus=bus,
             clock=GameClock(), scenes=SceneManager(), progress=ProgressStore(save, bus),
-            wallet=carteira, shop=Loja(save, carteira, bus))
+            wallet=carteira, shop=Loja(save, carteira, bus),
+            scenarios=ColecaoCenarios(save, carteira, bus))
         self.tela = pygame.Surface((LARGURA, ALTURA))
         self._topo = None              # cena do topo no quadro anterior
         self._foto = None              # último quadro da cena anterior (transição)

@@ -9,7 +9,7 @@ from scenarios import FakeClock
 
 from flappy_arcade.config.constants import ALTURA, LARGURA, Y_NAVE
 from flappy_arcade.config.economy import BONUS_POR_ESTRELA_NOVA
-from flappy_arcade.config.skins import COMUM, POR_ID, RADICAL, RARA, SKIN_PADRAO, SKINS
+from flappy_arcade.config.skins import COMUM, FAIXAS_PRECO, POR_ID, SKIN_PADRAO, SKINS
 from flappy_arcade.core.event_bus import EventBus
 from flappy_arcade.gameplay.coins import ColetorMoedas
 from flappy_arcade.gameplay.free_mode import FreeSession
@@ -66,7 +66,7 @@ def test_save_estragado_nas_skins_volta_ao_padrao(save):
 
 # ---------------------------------------------------------------- catálogo
 def test_precos_seguem_a_raridade():
-    faixas = {COMUM: (0, 100), RARA: (250, 500), RADICAL: (1000, 10_000)}
+    faixas = {**FAIXAS_PRECO, COMUM: (0, FAIXAS_PRECO[COMUM][1])}     # a padrão é de graça
     assert len(POR_ID) == len(SKINS)
     for s in SKINS:
         minimo, maximo = faixas[s.raridade]

@@ -3,16 +3,25 @@
 Tipos de skin:
   'paleta'    o pássaro original com as cores trocadas (mantém a animação das asas);
   'especial'  um dos sprites temáticos de assets/imgs (sem animação de asas);
-  efeitos     'brilho', 'fantasma', 'neon' ou 'arco_iris' (animados; o rastro
-              some quando os efeitos visuais estão desligados).
+  'arte'      uma das artes importadas para assets/skins (tools/importar_artes.py);
+  efeitos     'brilho', 'fantasma', 'neon', 'arco_iris' (pássaro e rastro mudam de
+              cor), 'rastro_arco_iris' (só o rastro) ou 'poeira' (animados; somem
+              quando os efeitos visuais estão desligados).
 
-Faixas de preço: comuns 50 a 100, raras 250 a 500, radicais 1000 ou mais.
+Categorias: Clássicas (as 18 primeiras), Fantasias (35 artes) e Times (32 artes).
+Faixas de preço: comuns 50 a 200, raras 250 a 500, radicais 1000 ou mais.
+Times custam 200; fantasias simples 120; detalhadas 350 a 500; radicais com efeito.
 """
 from dataclasses import dataclass, field
 
 COMUM, RARA, RADICAL = 'comum', 'rara', 'radical'
 NOMES_RARIDADE = {COMUM: 'COMUM', RARA: 'RARA', RADICAL: 'RADICAL'}
 CORES_RARIDADE = {COMUM: (120, 168, 72), RARA: (72, 120, 220), RADICAL: (200, 84, 200)}
+
+CLASSICAS, FANTASIAS, TIMES = 'classicas', 'fantasias', 'times'
+CATEGORIAS = (CLASSICAS, FANTASIAS, TIMES)
+NOMES_CATEGORIA = {CLASSICAS: 'CLÁSSICAS', FANTASIAS: 'FANTASIAS', TIMES: 'TIMES'}
+FAIXAS_PRECO = {COMUM: (50, 200), RARA: (250, 500), RADICAL: (1000, 10_000)}
 
 # Cores do pássaro original que a troca de paleta substitui.
 CORPO, CORPO_SOMBRA, BARRIGA, BICO = 'corpo', 'corpo_sombra', 'barriga', 'bico'
@@ -32,8 +41,21 @@ class Skin:
     preco: int
     tipo: str = 'paleta'
     cores: dict = field(default_factory=dict)    # paleta: papel -> cor nova
-    sprite: str = ''                             # especial: nome do PNG
+    sprite: str = ''                             # especial: nome do PNG; arte: id do arquivo
     efeito: str = ''
+    categoria: str = CLASSICAS
+
+
+def _fantasia(ident, nome, raridade, preco, efeito=''):
+    return Skin(ident, nome, raridade, preco, tipo='arte', sprite=ident, efeito=efeito, categoria=FANTASIAS)
+
+
+def _time(ident, nome):
+    return Skin(f'time_{ident}', nome, COMUM, PRECO_TIME, tipo='arte', sprite=f'time_{ident}', categoria=TIMES)
+
+
+PRECO_TIME = 200
+PRECO_FANTASIA_SIMPLES = 120
 
 
 SKINS = (
@@ -59,5 +81,54 @@ SKINS = (
          cores={CORPO: (40, 32, 64), CORPO_SOMBRA: (24, 20, 40), BARRIGA: (64, 248, 232), BICO: (248, 64, 200)}),
     Skin('arco_iris', 'Arco-íris', RADICAL, 2500, efeito='arco_iris'),
 )
+
+FANTASIAS_SKINS = (
+    # simples: um acessório ou uma cor
+    *(_fantasia(i, n, COMUM, PRECO_FANTASIA_SIMPLES) for i, n in (
+        ('gato', 'Gato'), ('cachorro', 'Cachorro'), ('sapo', 'Sapo'), ('panda', 'Panda'),
+        ('abelha', 'Abelha'), ('joaninha', 'Joaninha'), ('ninja', 'Ninja'), ('esportista', 'Esportista'),
+        ('gamer', 'Gamer'), ('inverno', 'Inverno'), ('verao', 'Verão'))),
+    # detalhadas
+    _fantasia('chef', 'Chef', RARA, 350),
+    _fantasia('cowboy', 'Cowboy', RARA, 350),
+    _fantasia('abobora', 'Abóbora', RARA, 350),
+    _fantasia('fantasminha', 'Fantasminha', RARA, 350),
+    _fantasia('borboleta', 'Borboleta', RARA, 350),
+    _fantasia('aniversario', 'Aniversário', RARA, 350),
+    _fantasia('rena', 'Rena', RARA, 350),
+    _fantasia('elfo', 'Elfo', RARA, 400),
+    _fantasia('boneco_de_neve', 'Boneco de Neve', RARA, 400),
+    _fantasia('papai_noel', 'Papai Noel', RARA, 400),
+    _fantasia('vampiro', 'Vampiro', RARA, 400),
+    _fantasia('pirata', 'Pirata', RARA, 400),
+    _fantasia('rockstar', 'Rockstar', RARA, 400),
+    _fantasia('mago', 'Mago', RARA, 450),
+    _fantasia('bruxa', 'Bruxa', RARA, 450),
+    _fantasia('alien', 'Alien', RARA, 450),
+    _fantasia('robo', 'Robô', RARA, 450),
+    _fantasia('rei', 'Rei', RARA, 500),
+    _fantasia('rainha', 'Rainha', RARA, 500),
+    _fantasia('astronauta', 'Astronauta', RARA, 500),
+    # radicais: com efeito animado
+    _fantasia('dinossauro', 'Dinossauro', RADICAL, 1200, 'poeira'),
+    _fantasia('fada', 'Fada', RADICAL, 1500, 'brilho'),
+    _fantasia('futurista', 'Futurista', RADICAL, 1800, 'neon'),
+    _fantasia('unicornio', 'Unicórnio', RADICAL, 2000, 'rastro_arco_iris'),
+)
+
+TIMES_SKINS = tuple(_time(i, n) for i, n in (
+    ('santos', 'Santos'), ('flamengo', 'Flamengo'), ('palmeiras', 'Palmeiras'), ('spfc', 'SPFC'),
+    ('botafogo', 'Botafogo'), ('fluminense', 'Fluminense'), ('gremio', 'Grêmio'),
+    ('internacional', 'Internacional'), ('vasco', 'Vasco'), ('athletico_pr', 'Athletico-PR'),
+    ('corinthians', 'Corinthians'), ('cruzeiro', 'Cruzeiro'), ('bahia', 'Bahia'),
+    ('fortaleza', 'Fortaleza'), ('ceara', 'Ceará'), ('sport', 'Sport'), ('goias', 'Goiás'),
+    ('atletico_go', 'Atlético-GO'), ('cuiaba', 'Cuiabá'), ('botafogo_sp', 'Botafogo-SP'),
+    ('novorizontino', 'Novorizontino'), ('paysandu', 'Paysandu'), ('remo', 'Remo'),
+    ('chapecoense', 'Chapecoense'), ('abc', 'ABC'), ('criciuma', 'Criciúma'), ('operario', 'Operário'),
+    ('avai', 'Avaí'), ('csa', 'CSA'), ('ituano', 'Ituano'), ('sampaio', 'Sampaio'),
+    ('mirassol', 'Mirassol')))
+
+SKINS = SKINS + FANTASIAS_SKINS + TIMES_SKINS
 POR_ID = {s.id: s for s in SKINS}
+POR_CATEGORIA = {c: tuple(s for s in SKINS if s.categoria == c) for c in CATEGORIAS}
 SKIN_PADRAO = 'classico'

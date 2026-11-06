@@ -44,6 +44,8 @@ class SkinVisual:
         d = self.definicao
         if d.tipo == 'especial':
             self.quadros = [recursos.especiais[d.sprite]]
+        elif d.tipo == 'arte':
+            self.quadros = [recursos.arte_skin(d.sprite)]
         else:
             self.quadros = [trocar_paleta(q, d.cores) for q in base]
         self.variantes = None
@@ -52,6 +54,7 @@ class SkinVisual:
                                for q in base] for i in range(PASSOS_ARCO_IRIS)]
         self.rastro = deque(maxlen=7)
         self.brilhos = []
+        self.poeira = []
         self.quadro_atual = 0
         self.aleatorio = random.Random(skin_id)   # nunca usa o random do jogo
 
@@ -70,8 +73,10 @@ class SkinVisual:
         centro = passaro.retangulo().center
         efeito = self.definicao.efeito if self.efeitos else ''
         sprite = pygame.transform.rotate(self.sprite_para(passaro.indice), angulo)
-        if efeito in ('arco_iris', 'fantasma', 'neon'):
+        if efeito in ('arco_iris', 'fantasma', 'neon', 'rastro_arco_iris'):
             self._rastro(tela, sprite, efeito)
+        if efeito == 'poeira':
+            self._poeira(tela, centro, sprite.get_height())
         if efeito == 'neon':
             self._contorno(tela, sprite, centro)
         if efeito == 'fantasma':
@@ -80,7 +85,8 @@ class SkinVisual:
         tela.blit(sprite, sprite.get_rect(center=centro))
         if efeito == 'brilho':
             self._brilhos(tela, centro)
-        self.rastro.appendleft([centro[0], centro[1], sprite])
+        marca = self._silhueta(sprite) if efeito == 'rastro_arco_iris' else sprite
+        self.rastro.appendleft([centro[0], centro[1], marca])
 
     # ---- efeitos ----
     def _rastro(self, tela, sprite_atual, efeito):
@@ -90,8 +96,33 @@ class SkinVisual:
             if i % 2:
                 continue
             copia = sprite.copy()
-            copia.set_alpha(max(0, 110 - i * 16) if efeito != 'neon' else max(0, 80 - i * 12))
+            alfa = {'neon': 80 - i * 12, 'rastro_arco_iris': 150 - i * 20}.get(efeito, 110 - i * 16)
+            copia.set_alpha(max(0, alfa))
             tela.blit(copia, copia.get_rect(center=(x, y)))
+
+    def _silhueta(self, sprite):
+        """Sombra colorida do sprite, com a cor girando pelo arco-íris."""
+        matiz = (self.quadro_atual % 36) / 36
+        cor = tuple(round(c * 255) for c in colorsys.hsv_to_rgb(matiz, 0.65, 1.0))
+        return pygame.mask.from_surface(sprite).to_surface(setcolor=(*cor, 255), unsetcolor=(0, 0, 0, 0))
+
+    def _poeira(self, tela, centro, altura):
+        """Nuvenzinhas de poeira saindo de trás do pássaro (Dinossauro)."""
+        if self.quadro_atual % 3 == 0:
+            self.poeira.append([centro[0] - 24 + self.aleatorio.uniform(-4, 4),
+                                centro[1] + altura * 0.25 + self.aleatorio.uniform(-6, 6), 0])
+        vivas = []
+        for nuvem in self.poeira:
+            nuvem[0] -= DESLIZE_RASTRO
+            nuvem[1] -= 0.4
+            nuvem[2] += 1
+            if nuvem[2] < 16:
+                raio = 4 + nuvem[2] * 0.7
+                bolha = pygame.Surface((raio * 2 + 2, raio * 2 + 2), pygame.SRCALPHA)
+                pygame.draw.circle(bolha, (214, 188, 136, max(0, 170 - nuvem[2] * 11)), (raio + 1, raio + 1), raio)
+                tela.blit(bolha, (nuvem[0] - raio, nuvem[1] - raio))
+                vivas.append(nuvem)
+        self.poeira = vivas
 
     def _contorno(self, tela, sprite, centro):
         rect = sprite.get_rect(center=centro)
