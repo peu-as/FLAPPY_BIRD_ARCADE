@@ -40,6 +40,19 @@ def texto(conteudo, tamanho, cor=Palette.WHITE, contorno=Palette.INK, espessura=
     return _CACHE_TEXTO[chave]
 
 
+def quebrar_linhas(conteudo, tamanho, largura):
+    """Quebra um texto em linhas que cabem na largura (em px, no tamanho de fonte dado)."""
+    linhas, atual = [], ''
+    for palavra in conteudo.split():
+        teste = f'{atual} {palavra}'.strip()
+        if texto(teste, tamanho, contorno=None).get_width() <= largura:
+            atual = teste
+        else:
+            linhas.append(atual)
+            atual = palavra
+    return linhas + [atual] if atual else linhas
+
+
 def desenhar_texto(superficie, conteudo, tamanho, centro=None, cor=Palette.WHITE,
                    contorno=Palette.INK, espessura=2, topo_esquerdo=None):
     imagem = texto(conteudo, tamanho, cor, contorno, espessura)

@@ -41,6 +41,11 @@ def ajustar_sprite(sprite, lado):
         sprite, (max(1, int(sprite.get_width()*escala)),
                  max(1, int(sprite.get_height()*escala))))
 
+SONS_MODOS_NOVOS = ('lancar', 'habilidade', 'madeira', 'gelo', 'pedra', 'explosao', 'inseto',
+                    'estouro1', 'estouro2', 'estouro3', 'estouro4', 'especial', 'raio',
+                    'ataque_chefe', 'chefe_ferido')
+
+
 def som(nome):
     """Tenta carregar um efeito sonoro; retorna None se indisponível.
 
@@ -117,6 +122,8 @@ class Recursos:
             'morte':'die.wav', 'inicio':'chiptune_begin.mp3',
             'fim':'game_over.mp3', 'arcade':'game_over_arcade.mp3'
         }.items()}
+        # Efeitos dos modos novos (Estilingue e Combina 3), gerados por tools/gerar_sons.py.
+        self.sons.update({nome: som(f'sfx_{nome}.wav') for nome in SONS_MODOS_NOVOS})
         self._artes_skins = {}
         self._cenarios = None
 

@@ -23,10 +23,13 @@ from ...config.constants import ALTURA, LARGURA, Y_CHAO
 from ...ui.theme import Palette
 from ...ui.widgets import desenhar_texto, texto
 from ..coins import icone_moeda
-from .mundo import BLOCO, CHEFE, INSETO, Mundo
+from ..tutorial import GuiaDicas
+from .mundo import BARRIL, BLOCO, CHEFE, INSETO, Mundo
 from .visual import Visual
 
 SOBREVOO, MIRA, VOO, ESPERA = 'SOBREVOO', 'MIRA', 'VOO', 'ESPERA'
+SOM_DO_MATERIAL = {'gelo': 'gelo', 'madeira': 'madeira', 'pedra': 'pedra'}
+DICA_DO_PASSARO = {'pena': 'est_pena', 'foguete': 'est_foguete', 'ovo': 'est_ovo'}
 DT = 1 / 30                        # a física anda um quadro de 30 FPS por chamada
 ANCORA = (cfg.X_ESTILINGUE, Y_CHAO - cfg.ALTURA_ESTILINGUE)
 CAMERA_MAXIMA = cfg.LARGURA_MUNDO - LARGURA
@@ -54,6 +57,7 @@ class EstilingueSession:
         self.visual = Visual(recursos)
         self.tela = pygame.Surface((LARGURA, ALTURA))
         self.fila = list(self.definicao.passaros)
+        self.guia = GuiaDicas()                 # sem registro: nenhuma dica (testes, robôs)
         self.total_passaros = len(self.fila)
         self.usados = 0
         self.etapa = SOBREVOO
@@ -86,13 +90,32 @@ class EstilingueSession:
     @property
     def objetivo(self):
         alvos = len(self.mundo.alvos)
-        quem = 'o chefão e os insetos' if self.chefe else ('o inseto' if alvos == 1 else f'os {alvos} insetos')
+        chefes = sum(1 for p in self.mundo.alvos if p.tipo == CHEFE)
+        insetos = alvos - chefes
+        if chefes:
+            quem = ('os dois chefões' if chefes > 1 else 'o chefão') + (
+                f' e {"o inseto" if insetos == 1 else f"os {insetos} insetos"}' if insetos else '')
+        else:
+            quem = 'o inseto' if alvos == 1 else f'os {alvos} insetos'
         return f'Derrube {quem} com {self.total_passaros} pássaros. 3 estrelas: sobrando 2.'
 
     def preparar_recompensas(self, skin=None, saldo=0, efeitos=True, moedas=True):
         self.skin = skin
         self.saldo_inicial = saldo
         self.efeitos = self.visual.efeitos = efeitos
+
+    def preparar_tutorial(self, registro):
+        """Dicas na primeira vez de cada coisa (a cena da casa entrega o registro do save)."""
+        self.guia = GuiaDicas(registro)
+
+    def _pedir_dicas(self):
+        self.guia.pedir('est_mirar')
+        if self.fila and self.fila[0] in DICA_DO_PASSARO:
+            self.guia.pedir(DICA_DO_PASSARO[self.fila[0]])
+        if any(p.tipo == BARRIL for p in self.mundo.pecas):
+            self.guia.pedir('est_barril')
+        if self.chefe:
+            self.guia.pedir('est_chefe')
 
     def preparar_cenarios(self, diretor, efeitos=True):
         self.visual.preparar_fundo(diretor.gerenciador.fundo(diretor.atual))
@@ -139,12 +162,14 @@ class EstilingueSession:
             return False
         tipo = self.fila.pop(0)
         self.usados += 1
-        posicao = (ANCORA[0] + puxada[0], ANCORA[1] + puxada[1])
-        self.atual = self.mundo.lancar(tipo, posicao, self.velocidade_da_puxada(puxada))
+        # O elástico solta o pássaro pela forquilha (a âncora): é dali que a mira desenha o
+        # voo e de onde o robô de calibração lança. Também nunca nasce encostado no chão.
+        self.atual = self.mundo.lancar(tipo, ANCORA, self.velocidade_da_puxada(puxada))
         self.visual.rastro_anterior, self.visual.rastro = self.visual.rastro, []
         self.puxada, self.arrastando, self.mira_teclado = None, False, None
         self._mudar(VOO)
-        self.audio.play_sfx('pulo', 0.5)
+        self.guia.acao()
+        self.audio.play_sfx('lancar', 0.55)
         return True
 
     def usar_habilidade(self):
@@ -152,7 +177,7 @@ class EstilingueSession:
             if self.atual.nome == 'pena':
                 filhotes = [p for p in self.mundo.passaros_no_ar if p.filhote]
                 self.atual = filhotes[len(filhotes) // 2] if filhotes else None
-            self.audio.play_sfx('ponto', 0.35)
+            self.audio.play_sfx('habilidade', 0.45)
             return True
         return False
 
@@ -177,7 +202,10 @@ class EstilingueSession:
             elif self.etapa == VOO:
                 self.usar_habilidade()
         elif evento.type == pygame.MOUSEMOTION and self.arrastando:
-            self._puxar(evento.pos)
+            if not getattr(evento, 'buttons', (1,))[0]:          # o botão foi solto fora daqui (pausa)
+                self.puxada, self.arrastando = None, False
+            else:
+                self._puxar(evento.pos)
         elif evento.type == pygame.MOUSEBUTTONUP and evento.button == 1 and self.arrastando:
             if not (self.puxada and self.lancar(self.puxada)):
                 self.puxada, self.arrastando = None, False
@@ -235,6 +263,9 @@ class EstilingueSession:
             self.mundo.passo(DT)
             self._eventos()
             self._seguir_etapas()
+        if self.etapa == MIRA:
+            self._pedir_dicas()
+        self.guia.atualizar(DT)
         self.visual.atualizar(DT)
         self._mover_camera()
 
@@ -244,18 +275,20 @@ class EstilingueSession:
                 self.pontos += dado.pontos
                 self.visual.ao_quebrar(dado)
                 if dado.tipo == BLOCO:
+                    self.audio.play_sfx(SOM_DO_MATERIAL.get(dado.material, 'madeira'), 0.45)
                     self.blocos_quebrados += 1
                     if self.blocos_quebrados % cfg.BLOCOS_POR_MOEDA == 0:
                         self._ganhar_moedas(1, dado.posicao)
                 elif dado.tipo in (INSETO, CHEFE):
                     self._ganhar_moedas(cfg.MOEDAS_POR_CHEFE if dado.tipo == CHEFE else cfg.MOEDAS_POR_INSETO,
                                         dado.posicao)
-                    self.audio.play_sfx('ponto', 0.5)
+                    self.audio.play_sfx('inseto', 0.5)
+                    self.audio.play_sfx('ponto', 0.35)
                 else:
                     self.audio.play_sfx('colisao', 0.4)
             elif tipo == 'explodiu':
                 self.visual.ao_explodir(*dado)
-                self.audio.play_sfx('colisao', 0.6)
+                self.audio.play_sfx('explosao', 0.6)
             elif tipo == 'bateu':
                 self.audio.play_sfx('colisao', 0.3)
 
@@ -282,7 +315,7 @@ class EstilingueSession:
         if not self.mundo.alvos:
             sobrando = len(self.fila)
             self.pontos += sobrando * cfg.PONTOS_PASSARO_SOBRANDO
-            self.moedas_coletadas += sobrando * cfg.MOEDAS_POR_PASSARO_SOBRANDO
+            self.moedas_coletadas += sobrando * cfg.MOEDAS_POR_PASSARO_SOBRANDO + cfg.MOEDAS_POR_VITORIA
             self.estrelas = cfg.estrelas_estilingue(self.total_passaros, self.usados)
             self.resultado = 'VITORIA'
         elif not self.fila:
@@ -340,8 +373,10 @@ class EstilingueSession:
         icone = icone_moeda(10)
         tela.blit(icone, (16, 52))
         desenhar_texto(tela, f'+{self.moedas_coletadas}', 24, topo_esquerdo=(40, 48), cor=Palette.COIN)
-        alvos = len(self.mundo.alvos)
-        img = texto(f'INSETOS: {alvos}', 26, Palette.WHITE)
+        chefes = sum(1 for p in self.mundo.alvos if p.tipo == CHEFE)
+        insetos = len(self.mundo.alvos) - chefes
+        contador = f'INSETOS: {insetos}' + (f'  CHEFÕES: {chefes}' if chefes else '')
+        img = texto(contador, 26, Palette.WHITE)
         tela.blit(img, img.get_rect(topright=(LARGURA - 14, 12)))
         x = LARGURA - 18
         for tipo in reversed(self.fila):
@@ -360,6 +395,7 @@ class EstilingueSession:
             img = texto(self.definicao.dica, 28, Palette.BIRD_YELLOW, Palette.INK, 3)
             img.set_alpha(min(255, int(self.banner_tempo * 255)))
             tela.blit(img, img.get_rect(center=(LARGURA // 2, 120)))
+        self.guia.desenhar(tela, 190)
 
     def _dica(self):
         if self.etapa == SOBREVOO:

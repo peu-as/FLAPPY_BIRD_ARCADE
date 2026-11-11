@@ -38,9 +38,11 @@ FRACAO_2_ESTRELAS = 0.12
 DANO_POR_EFEITO = 3                   # cada Pena-Raio, Ovo Nova ou Arco-íris disparado
 MAX_CAIXAS_DO_CHEFE = 12              # o chefão não cobre o tabuleiro inteiro
 
-MOEDAS_POR_ESPECIAL = 1               # cada peça especial criada
-JOGADAS_POR_MOEDA = 2                 # na vitória: jogadas que sobraram / 2
-MOEDAS_POR_VITORIA = 4
+# Moedas (Fase 18): uma vitória típica rende ~25, como uma casa dos mapas antigos.
+MOEDAS_POR_ESPECIAL = 2               # cada peça especial criada
+JOGADAS_POR_MOEDA = 1                 # na vitória: 1 moeda por jogada que sobrou
+MOEDAS_POR_VITORIA = 10
+MOEDAS_POR_CHEFE = 15                 # vitória numa casa de chefão
 
 NOMES_PLURAL = {'pena': 'penas', 'folha': 'folhas', 'ovo': 'ovos', 'moeda': 'moedas',
                 'semente': 'sementes', 'fruta': 'frutas'}

@@ -8,7 +8,8 @@ Formato (versão 2):
       "skins":     {"owned": ["classico"], "equipped": "classico"},
       "scenarios": {"owned": ["bg"], "mode": "fixo", "fixed": "bg", "playlist": ["bg"]},
       "progress":  {},          # por mapa: casas liberadas e estrelas
-      "records":   {"free_best_streak": 0}   # Modo Livre: maior sequência sem cair
+      "records":   {"free_best_streak": 0},  # Modo Livre: maior sequência sem cair
+      "tutorial":  {"vistas": []}            # dicas dos modos novos já vistas (Fase 18)
     }
 
 Versão 2 (Fase 9): cenários compráveis. Quem vem da versão 1 mantém tudo
@@ -40,6 +41,7 @@ PADRAO = {
     'scenarios': {'owned': ['bg'], 'mode': 'fixo', 'fixed': 'bg', 'playlist': ['bg']},
     'progress': {},
     'records': {'free_best_streak': 0},
+    'tutorial': {'vistas': []},                # dicas dos modos novos já vistas
 }
 
 # MIGRACOES[n] recebe um save da versão n e devolve um da versão n + 1.
@@ -107,7 +109,10 @@ class SaveManager:
         return _completar(dados, {**PADRAO, 'version': dados['version']})
 
     def _isolar(self, arquivo):
-        destino = arquivo.with_name(f'{self.caminho.stem}.corrupt-{time.strftime("%Y%m%d-%H%M%S")}.json')
+        base = f'{self.caminho.stem}.corrupt-{time.strftime("%Y%m%d-%H%M%S")}'
+        destino, n = arquivo.with_name(f'{base}.json'), 2
+        while destino.exists():                              # dois no mesmo segundo: não sobrescreve
+            destino, n = arquivo.with_name(f'{base}-{n}.json'), n + 1
         try:
             os.replace(arquivo, destino)
         except OSError:

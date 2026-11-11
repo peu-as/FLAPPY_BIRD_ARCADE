@@ -21,7 +21,9 @@ from ...config.constants import ALTURA, LARGURA
 from ...ui.theme import Palette
 from ...ui.widgets import desenhar_texto, painel, texto
 from ..coins import icone_moeda
+from ..tutorial import GuiaDicas
 from .partida import Partida
+from .tabuleiro import ARCO, LINHA_H, LINHA_V, OVO
 from .visual import AREA, VisualCombina3, casa_em
 
 PRONTO, TROCA, ESTOURO, QUEDA, EMBARALHA, ATAQUE = 'PRONTO', 'TROCA', 'ESTOURO', 'QUEDA', 'EMBARALHA', 'ATAQUE'
@@ -30,6 +32,7 @@ TEMPO_TROCA, TEMPO_ESTOURO, TEMPO_MINIMO_QUEDA, TEMPO_EMBARALHA = 0.18, 0.22, 0.
 TEMPO_ATAQUE = 0.75
 SEGUNDOS_PARA_DICA = 5.0
 ARRASTE_MINIMO = 24
+DICA_DA_ESPECIAL = {LINHA_H: 'c3_linha', LINHA_V: 'c3_linha', OVO: 'c3_ovo', ARCO: 'c3_arco'}
 SETAS = {pygame.K_LEFT: (0, -1), pygame.K_RIGHT: (0, 1), pygame.K_UP: (-1, 0), pygame.K_DOWN: (1, 0)}
 HUD = pygame.Rect(14, 12, 350, 150)
 POS_CHEFE = (HUD.x + 64, HUD.y + 92)          # de onde saem os ataques
@@ -70,6 +73,7 @@ class Combina3Session:
         self.banner_tempo = 0.0
         self.skin = None
         self.efeitos_bonus = True
+        self.guia = GuiaDicas()                 # sem registro: nenhuma dica (testes, robôs)
 
     # ------------------------------------------------------------ contrato da casa
     @property
@@ -96,6 +100,20 @@ class Combina3Session:
         self.skin = skin
         self.visual.efeitos = efeitos
 
+    def preparar_tutorial(self, registro):
+        """Dicas na primeira vez de cada coisa (a cena da casa entrega o registro do save)."""
+        self.guia = GuiaDicas(registro)
+        self.guia.pedir('c3_trocar')
+        tipos = {o[0] for o in self.definicao.objetivos}
+        if cfg.COLETAR in tipos:
+            self.guia.pedir('c3_coletar')
+        if self.partida.gelo_total:
+            self.guia.pedir('c3_gelo')
+        if self.partida.caixas_total:
+            self.guia.pedir('c3_caixas')
+        if self.definicao.chefao:
+            self.guia.pedir('c3_chefe')
+
     def preparar_cenarios(self, diretor, efeitos=True):
         self.visual.preparar_fundo(diretor.gerenciador.fundo(diretor.atual))
 
@@ -116,6 +134,7 @@ class Combina3Session:
             return False
         self.onda = onda
         self.partida.usar_jogada()
+        self.guia.acao()
         self.visual.sincronizar(self.tab)
         self._mudar(TROCA)
         self.audio.play_sfx('pulo', 0.35)
@@ -132,21 +151,41 @@ class Combina3Session:
     def _estourar(self):
         onda = self.onda
         self.visual.ao_aplicar(onda)
-        for casa in onda.criadas:
+        for casa, peca in onda.criadas.items():
+            self.guia.pedir(DICA_DA_ESPECIAL[peca.especial])
             self.moedas_coletadas += cfg.MOEDAS_POR_ESPECIAL
             self.visual.moedas(casa, cfg.MOEDAS_POR_ESPECIAL)
         dano = self.partida.aplicar(onda)
         if dano:
             self.visual.dano_no_chefe(POS_CHEFE, dano)
         self.visual.sincronizar(self.tab)
-        self.audio.play_sfx('ponto', min(0.7, 0.3 + 0.1 * onda.multiplicador))
+        self._sons(onda, dano)
         self._mudar(ESTOURO)
+
+    def _sons(self, onda, dano):
+        tocar = self.audio.play_sfx
+        tocar(f'estouro{min(4, onda.multiplicador)}', 0.5)          # cada cascata, um tom acima
+        efeitos = {efeito[0] for efeito in onda.efeitos}
+        if efeitos & {LINHA_H, LINHA_V, ARCO}:
+            tocar('raio', 0.4)
+        if 'explosao' in efeitos:
+            tocar('explosao', 0.4)
+        if onda.criadas:
+            tocar('especial', 0.45)
+        if onda.gelo:
+            tocar('gelo', 0.35)
+        if onda.caixas:
+            tocar('madeira', 0.4)
+        if dano:
+            tocar('chefe_ferido', 0.3)
 
     def _fim_da_jogada(self):
         self.onda = None
         if self.partida.cumprida():
             sobrando = self.jogadas
             self.moedas_coletadas += cfg.MOEDAS_POR_VITORIA + sobrando // cfg.JOGADAS_POR_MOEDA
+            if self.definicao.chefao:
+                self.moedas_coletadas += cfg.MOEDAS_POR_CHEFE
             self.estrelas = cfg.estrelas_combina3(self.definicao.jogadas, self.usadas)
             self.resultado = 'VITORIA'
             return
@@ -161,7 +200,7 @@ class Combina3Session:
             frase = {'rei_inseto': 'O REI-INSETO PRENDEU PEÇAS!', 'kong': 'O KONG JOGOU BARRIS!',
                      'dupla': 'OS CHEFÕES ATACARAM!'}[quem.nome]
             self.aviso = (frase if not self.ataque.bravo else frase.replace('!', ' (BRAVO)!'), 1.8)
-            self.audio.play_sfx('colisao', 0.5)
+            self.audio.play_sfx('ataque_chefe', 0.55)
             self._mudar(ATAQUE)
         else:
             self._seguir()
@@ -175,6 +214,20 @@ class Combina3Session:
             self._mudar(EMBARALHA)
         else:
             self._mudar(PRONTO)
+            self._dica_de_combo()
+
+    def _dica_de_combo(self):
+        """Duas especiais vizinhas no tabuleiro: ensina a trocar uma com a outra."""
+        tab = self.tab
+        for l, c in tab.casas():
+            peca = tab.peca((l, c))
+            if peca is None or not peca.especial:
+                continue
+            for viz in ((l, c + 1), (l + 1, c)):
+                outra = tab.peca(viz)
+                if outra is not None and outra.especial:
+                    self.guia.pedir('c3_combo')
+                    return
 
     def _ataque_chegou(self):
         removidas = self.partida.aplicar_ataque(self.ataque)
@@ -200,6 +253,8 @@ class Combina3Session:
                 self.tentar(self.selecao, casa)
             else:
                 self.selecao, self.arrasto = casa, (casa, evento.pos)
+        elif evento.type == pygame.MOUSEMOTION and self.arrasto and not getattr(evento, 'buttons', (1,))[0]:
+            self.arrasto = None                          # o botão foi solto fora daqui (pausa)
         elif evento.type == pygame.MOUSEMOTION and self.arrasto:
             casa, origem = self.arrasto
             dx, dy = evento.pos[0] - origem[0], evento.pos[1] - origem[1]
@@ -238,6 +293,8 @@ class Combina3Session:
         self.tempo_etapa += DT
         mensagem, restante = self.aviso
         self.aviso = (mensagem, max(0.0, restante - DT))
+        if restante <= 0:                                # o balão de dica espera os avisos (ataque, embaralhar)
+            self.guia.atualizar(DT)
         self.visual.atualizar(DT)
         if self.etapa == PRONTO:
             self.ocioso += DT
@@ -266,6 +323,8 @@ class Combina3Session:
                              self.partida.casulos, self.partida.barris)
         self._hud(tela)
         self.visual.desenhar_ataques(tela)
+        if self.aviso[1] <= 0:
+            self.guia.desenhar(tela, AREA.bottom + 50)
 
     def _hud(self, tela):
         painel(tela, HUD, Palette.PANEL, sombra=4)

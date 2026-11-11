@@ -465,6 +465,37 @@ def test_arrastar_troca(recursos):
     assert s.etapa == TROCA and s.usadas == 1
 
 
+def test_soltar_o_botao_durante_a_pausa_cancela_o_arrasto(recursos):
+    s = _sessao(recursos)
+    a, b = s.tab.dica()
+    xa, ya = centro_da_casa(*a)
+    _clique(s, pygame.MOUSEBUTTONDOWN, (xa, ya))
+    s.tratar_evento(pygame.event.Event(pygame.MOUSEMOTION, pos=(xa + (b[1] - a[1]) * 30, ya + (b[0] - a[0]) * 30),
+                                       rel=(0, 0), buttons=(0, 0, 0)))
+    assert s.arrasto is None and s.usadas == 0 and s.etapa == PRONTO
+
+
+def test_balao_de_dica_espera_o_aviso_do_ataque(recursos):
+    from flappy_arcade.gameplay.tutorial import GuiaDicas
+
+    class Registro:
+        def vista(self, ident):
+            return False
+
+        def marcar(self, ident):
+            pass
+    s = _sessao(recursos)
+    s.guia = GuiaDicas(Registro())
+    s.guia.pedir('c3_chefe')
+    s.aviso = ('OS CHEFÕES ATACARAM!', 1.0)
+    for _ in range(20):
+        s.atualizar()
+    assert s.guia.atual is None                                   # esperou
+    for _ in range(20):
+        s.atualizar()
+    assert s.guia.atual == 'c3_chefe'
+
+
 def test_troca_que_nao_combina_nao_gasta_jogada(recursos):
     s = _sessao(recursos)
     validas = set(s.tab.jogadas())

@@ -218,6 +218,56 @@ def test_arrastar_com_o_mouse_lanca(recursos):
     assert v.x > 0 and v.y < 0                                   # puxou para trás e para baixo: vai para a frente e para cima
 
 
+def test_o_voo_segue_a_mira(recursos):
+    """Fase 18 (verificação independente): o pássaro sai pela forquilha, de onde a mira parte."""
+    for puxada in ((-90, 60), (-20, 105), (-108, 10)):            # médio, quase vertical, quase reto
+        s = _sessao(recursos)
+        s.etapa = MIRA
+        mira = s.trajetoria(puxada)
+        assert s.lancar(puxada)
+        corpo = s.atual.corpo
+        assert (corpo.position.x, corpo.position.y) == pytest.approx(ANCORA)
+        assert corpo.position.y < Y_CHAO - 100                     # longe do chão
+        vx, vy = s.velocidade_da_puxada(puxada)
+
+        def curva(t):                                             # a mesma conta da mira
+            return ANCORA[0] + vx * t, ANCORA[1] + vy * t + cfg.GRAVIDADE * t * t / 2
+        assert mira[0] == pytest.approx(curva(0.055))
+        erros = []
+        for quadro in range(1, 13):                               # ~0,4 s de voo
+            s.mundo.passo(1 / 30)
+            p = s.atual.corpo.position
+            x, y = curva(quadro / 30)
+            erros.append(((p.x - x) ** 2 + (p.y - y) ** 2) ** 0.5)
+        assert max(erros) < 8, (puxada, erros)
+        assert not s.atual.bateu                                  # não nasce encostado no chão
+
+
+def test_soltar_o_botao_durante_a_pausa_cancela_o_arrasto(recursos):
+    s = _sessao(recursos)
+    s.etapa = MIRA
+    s.tratar_evento(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(300, 500), button=1))
+    s.tratar_evento(pygame.event.Event(pygame.MOUSEMOTION, pos=(240, 540), rel=(0, 0), buttons=(1, 0, 0)))
+    assert s.arrastando
+    s.tratar_evento(pygame.event.Event(pygame.MOUSEMOTION, pos=(200, 560), rel=(0, 0), buttons=(0, 0, 0)))
+    assert not s.arrastando and s.puxada is None and s.usados == 0
+
+
+def test_fila_de_passaros_cabe_na_tela(recursos):
+    s = _sessao(recursos, 25)                                      # 5 pássaros
+    s.etapa = MIRA
+    tela = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
+    s.visual.desenhar_fila(tela, 0, s.fila, None, preparado=True)
+    colunas = [x for x in range(LARGURA) if any(tela.get_at((x, y)).a for y in range(ALTURA - 140, ALTURA - 60))]
+    assert colunas and min(colunas) > 0                            # nada cortado na borda esquerda
+
+
+def test_textos_das_casas_com_chefoes(recursos):
+    s = _sessao(recursos, 25)
+    assert s.objetivo.startswith('Derrube os dois chefões e os')
+    s.desenhar()
+
+
 def test_puxada_curta_nao_lanca(recursos):
     s = _sessao(recursos)
     s.etapa = MIRA

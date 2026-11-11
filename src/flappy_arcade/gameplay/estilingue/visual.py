@@ -243,10 +243,12 @@ class Visual:
     def desenhar_fila(self, tela, camera, fila, skin, preparado):
         """Pássaros esperando a vez, no chão atrás do estilingue."""
         x = cfg.X_ESTILINGUE - 50 - camera
-        for i, tipo in enumerate(fila[1:] if preparado else fila):
+        esperando = fila[1:] if preparado else fila
+        espaco = min(42, (x - 36) / max(1, len(esperando) - 1)) if len(esperando) > 1 else 42   # cabe na tela
+        for i, tipo in enumerate(esperando):
             raio = cfg.PASSAROS[tipo].raio * 0.8
             img = self.sprite_passaro(tipo, skin, raio)
-            tela.blit(img, img.get_rect(midbottom=(round(x - i * 42), Y_CHAO - 2)))
+            tela.blit(img, img.get_rect(midbottom=(round(x - i * espaco), Y_CHAO - 2)))
 
     def desenhar_passaro_no_estilingue(self, tela, posicao, tipo, skin, angulo):
         img = pygame.transform.rotate(self.sprite_passaro(tipo, skin, cfg.PASSAROS[tipo].raio), angulo)

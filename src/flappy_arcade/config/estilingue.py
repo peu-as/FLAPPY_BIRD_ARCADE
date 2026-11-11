@@ -90,9 +90,12 @@ PONTOS_INSETO = 5000
 PONTOS_PASSARO_SOBRANDO = 10000
 
 # ---------------------------------------------------------------- moedas
-MOEDAS_POR_INSETO = 3
+# Fase 18: uma vitória típica rende ~25 moedas, como uma casa dos mapas antigos
+# (veja docs/balanceamento.md).
+MOEDAS_POR_INSETO = 4
 MOEDAS_POR_CHEFE = 15
-MOEDAS_POR_PASSARO_SOBRANDO = 4
+MOEDAS_POR_PASSARO_SOBRANDO = 5
+MOEDAS_POR_VITORIA = 4
 BLOCOS_POR_MOEDA = 4
 
 # ---------------------------------------------------------------- tempo

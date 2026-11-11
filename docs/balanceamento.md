@@ -247,7 +247,7 @@ Leitura: quem joga com atenção passa quase sempre até a casa 14 e sente o ape
 
 # Fase 17 — mapa do Combina 3 (objetivos e chefões)
 
-As metas de pontos da Fase 16 deram lugar a 25 casas com objetivos variados: 4 de pontos, 6 de coletar, 7 de gelo/caixas (algumas com os dois) e 5 chefões. A curva foi medida com `python tools/playtest_combina3.py --casas --partidas 40`, com o robô mirando no objetivo da casa (e não só nos pontos).
+As metas de pontos da Fase 16 deram lugar a 25 casas com objetivos variados: 4 de pontos, 6 de coletar (uma também com gelo), 10 de gelo e/ou caixas e 5 chefões. A curva foi medida com `python tools/playtest_combina3.py --casas --partidas 40`, com o robô mirando no objetivo da casa (e não só nos pontos).
 
 ## Chefões
 
@@ -281,3 +281,42 @@ Bravo (metade da vida): uma casa a mais por ataque.
 Ajustes feitos a partir das medições: chefões com vida bem menor (a primeira tabela tinha 230–520: 0–20% de vitória); a casa 3 trocou o gelo do fundo pelo do meio (no fundo, só 33%); gelo grosso afinado nas casas 8, 14, 17, 22 e 24 (o último pedacinho de gelo num canto custa muitas jogadas); coletas um pouco menores nas casas 9, 18 e 22; casas 16 e 23 com mais caixas (estavam fáceis).
 
 **Para o seu teste de jogo:** o robô "bom" enxerga as peças que vão cair (ele testa a jogada numa cópia do tabuleiro), então joga melhor que uma pessoa atenta; o "médio" é a melhor referência. Se uma casa de gelo parecer injusta, troque `G` por `g` no desenho do tabuleiro; se um chefão parecer forte, baixe a `vida` ou aumente `a_cada` em `CASAS_COMBINA3`.
+
+---
+
+# Fase 18 — economia dos modos novos
+
+## Moedas por casa
+
+Medido com os robôs (vitória típica, jogador médio). Os mapas antigos rendem **17 a 32 moedas coletadas por casa** (Fase 14); os novos estavam abaixo:
+
+| Modo | Antes | Regras novas | Depois |
+|---|---|---|---|
+| Estilingue | ~18 por casa (7 na casa 1, 48 na 25) | inseto 3 → **4**, pássaro sobrando 4 → **5**, **+4 pela vitória** | **~25** |
+| Combina 3 | 8 a 13 por casa | especial 1 → **2**, **1 por jogada que sobra** (era 1 a cada 2), vitória 4 → **10**, **+15 em casa de chefão** | **~25 (chefões ~40)** |
+
+O bônus por estrela nova (`20 + 2 × casa`) é o mesmo em todos os mapas.
+
+## Quanto da loja os mapas pagam
+
+Agora são seis caminhos com estrelas: Donkey, Galaga, Flappy, Estilingue, Combina 3 e a jornada Arcade.
+
+| | Fase 14 (4 caminhos) | Fase 18 (6 caminhos) |
+|---|---|---|
+| Bônus de estrelas, tudo com 3 estrelas | 13.800 (26% da loja) | **20.700 (39%)** |
+| Com as moedas coletadas | ~15.500–17.000 (29–32%) | **~24.000–25.000 (~45%)** |
+
+Decisão: manter o mesmo bônus em todos os mapas (nenhum modo "vale menos"); quem completa as 150 casas com 3 estrelas paga um pouco menos da metade da loja, e o resto continua vindo do Modo Livre. Se quiser voltar a ~1/3, baixe `BONUS_ESTRELA_BASE` em `config/economy.py` (de 20 para 12 dá ~32%). `tests/test_balanceamento.py` confere a faixa de 30 a 42% só com o bônus de estrelas.
+
+## Verificação independente (antes do commit)
+
+Um agente que não acompanhou o desenvolvimento testou o jogo inteiro numa cópia (suíte duas vezes, as 25 casas de cada modo novo pela tela, 750 partidas do Combina 3 só com as regras, o Modo Apresentação de ponta a ponta, saves antigos e corrompidos, desempenho). Não achou defeito grave. Corrigido a partir do relatório:
+
+- **Estilingue, mira:** o pássaro saía de onde foi puxado, mas a mira partia da forquilha, então o voo real ficava até ~110 px deslocado. Agora o pássaro é solto pela forquilha. A mira fica fiel e as medições de dificuldade da Fase 15 continuam valendo, porque o robô sempre lançou da forquilha. Isso também evita que um lançamento quase vertical nasça encostado no chão.
+- **Arrasto e pausa:** soltar o botão durante a pausa deixava o arrasto "preso" ao voltar; agora mover o mouse sem o botão cancela o arrasto (nos dois modos).
+- **Combina 3:** o balão de dica esperava sobre o aviso "OS CHEFÕES ATACARAM!"; agora ele aguarda o aviso sumir.
+- **Estilingue:** a fila de 4 ou 5 pássaros cabe na tela; a casa 25 diz "Derrube os dois chefões..." e o contador mostra "INSETOS: 4  CHEFÕES: 2".
+- **Textos:** dica da Pena-Raio cita linha ou coluna; a dica do combo não repete "Dica:".
+- **Save:** dois saves corrompidos no mesmo segundo não se sobrescrevem mais.
+- **Modo Apresentação:** "Resetar progresso" com ele ligado recomeça a apresentação (tudo liberado de novo), em vez de deixar um perfil vazio.
+- **Documentação:** contagens das casas do Combina 3, pontos de gelo/caixa/combo e o dano dos combos nos chefões.

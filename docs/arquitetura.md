@@ -21,6 +21,7 @@ src/
       levels.py              mapas de 25 casas + jornada Arcade (capítulos e etapas)
       economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
       skins.py               catálogo de skins: categorias, raridade, preço, cores, efeitos
+      tutorial.py            textos das dicas de tutorial dos modos novos
       estilingue.py          modo Estilingue: materiais, pássaros, física e as 25 casas
       combina3.py            modo Combina 3: objetivos, chefões e as 25 casas (tabuleiros em texto), estrelas
       scenarios.py           catálogo de cenários: preço, período (dia/tarde/noite), arquivo
@@ -28,6 +29,7 @@ src/
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
       apresentacao.py        Modo Apresentação (Ctrl+Shift+A): perfil com tudo liberado, só na memória
+      tutorial.py            dicas de tutorial já vistas (seção "tutorial" do save)
       settings_store.py      música / SFX / efeitos visuais
       audio_manager.py       SFX e música em canais separados
       ranking.py             Top 10 (ranking.json)
@@ -48,6 +50,7 @@ src/
       donkey.py              fase Donkey Kong e Kong Furioso
       powerups.py, effects.py, hud.py
       bonus_visuals.py       visual novo dos bônus nos modos novos (itens, efeitos e nomes)
+      tutorial.py            balão "DICA" dos modos novos (uma dica por vez, cada uma só uma vez)
       estilingue/            modo Estilingue (física pymunk, fora da física original)
         mundo.py             peças, dano por impulso, explosões, habilidades (sem desenho)
         visual.py            texturas, personagens, estilingue, mira, efeitos
@@ -61,7 +64,7 @@ src/
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
     scenes/
-      main_menu.py           menu principal: 8 modos (Combina 3 "em breve"), loja, equipamentos,
+      main_menu.py           menu principal: 8 modos, loja, equipamentos, Modo Apresentação (Ctrl+Shift+A),
                              configurações, sair
       pause_scene.py         pausa: continuar, configurações, recomeçar, sair
       settings_scene.py      configurações (interruptores) e resetar progresso
@@ -91,12 +94,15 @@ tests/
   test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
   test_estilingue.py         Estilingue: casas estáveis, materiais, barris, habilidades, sessão
   test_apresentacao.py       Modo Apresentação: tudo liberado e o save real intacto
+  test_sons.py               efeitos dos modos novos: arquivos, gerador reproduzível, sessões
+  test_tutorial.py           dicas: uma por vez, só uma vez, guardadas no save, nas casas de verdade
   test_combina3.py           Combina 3: cada regra com tabuleiro montado à mão, objetivos, chefões, ataques, sessão
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
 tools/
   gerar_musica.py            compõe e gera as músicas de fundo (assets/audio/musica_*.wav)
+  gerar_sons.py              sintetiza os efeitos dos modos novos (assets/audio/sfx_*.wav)
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
   importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
   verificar_jogo.py          verificação final antes do commit (todas as telas + testes)
@@ -186,7 +192,7 @@ Inspirado nos jogos de arremesso com física. Os insetos da Esquadrilha Galaga (
 - **Dano:** cada batida gera um impulso; o que passa de `IMPULSO_MINIMO` vira dano nas duas peças. Gelo quebra com um toque médio, madeira com um bom acerto, pedra com ~3 batidas fortes ou explosões. Peça que sai do mundo conta como derrubada.
 - **Elementos especiais:** blocos de gelo/madeira/pedra com rachaduras; **barris do Kong** que explodem em cadeia; três pássaros com habilidade (os nomes dos bônus): **Pena Dupla** (vira três), **Semente-Foguete** (dispara reto, 2,2x de dano em madeira), **Ovo Nova** (explode no clique ou 1,2 s depois de bater). Chefões: Rei-Inseto (5, 15), Kong (10, 20) e os dois juntos (25).
 - **Estrelas:** 3 sobrando 2 pássaros, 2 sobrando 1, 1 usando todos.
-- **Controles:** arrastar para trás e soltar (mouse) ou setas + ESPAÇO; no ar, clique/ESPAÇO usa a habilidade; roda do mouse ou A/D olham a fortaleza.
+- **Controles:** arrastar para trás e soltar (mouse) ou setas + ESPAÇO; no ar, clique/ESPAÇO usa a habilidade; roda do mouse ou A/D olham a fortaleza. O elástico solta o pássaro pela forquilha (a âncora), de onde a mira desenha o voo: o caminho mostrado é o caminho real (até a primeira batida).
 - **Visual:** o fundo é o cenário que o jogador equipou (com paralaxe); câmera sobrevoa a fortaleza no começo e segue o pássaro.
 - **Para mudar uma casa:** edite `CASAS_ESTILINGUE` em `config/estilingue.py` (módulos `torre`, `casinha`, `piramide`, `muro`, `fortaleza`, `barril`) e rode `python tools/playtest_estilingue.py --casas N` (o robô diz se dá para vencer) e `--humano 8` (a dificuldade com erro de mira humano). Os testes conferem que toda fortaleza fica de pé sozinha.
 
@@ -204,14 +210,14 @@ Jogo de combinar três com as peças do nosso universo: **pena, folha, ovo, moed
 | 5 em linha | **Arco-íris** (esfera girando) | trocada com uma peça, limpa todas daquele tipo |
 
 - **Combos** (trocar duas especiais entre si): Pena-Raio + Pena-Raio = cruz; Ovo + Ovo = 5x5; Pena-Raio + Ovo = 3 linhas e 3 colunas; Arco-íris + especial = todas as peças daquele tipo viram a especial e disparam; Arco-íris + Arco-íris = o tabuleiro inteiro. Especial atingida por outra dispara em cadeia.
-- **Pontos:** 20 por peça, 60/120/200 ao criar Pena-Raio/Ovo Nova/Arco-íris; cada onda seguinte da mesma jogada multiplica (x2, x3...).
+- **Pontos:** 20 por peça, 30 por camada de gelo, 40 por golpe em caixa, 60/120/200 ao criar Pena-Raio/Ovo Nova/Arco-íris e +150 por combo de especiais; cada onda seguinte da mesma jogada multiplica (x2, x3...).
 - **Obstáculos:** **gelo** (camadas sob a peça; perde uma quando a peça é limpa; o grosso tem moldura dupla), **caixa** (ocupa a casa; quebra com limpeza ao lado ou efeito por cima) e **pedra** (fixa). As peças caem por trechos da coluna: param em cima de caixa e pedra, e peças novas entram no topo de cada trecho.
 - **Sem jogadas?** O tabuleiro embaralha as mesmas peças até existir uma troca válida. Parado por 5 s, o jogo mostra uma dica.
 - **Controles:** clicar em duas vizinhas ou arrastar (mouse); setas movem o cursor, ESPAÇO segura a peça e a seta seguinte troca.
 - **Objetivos (Fase 17):** cada casa tem um ou mais, todos obrigatórios: **pontos**, **coletar** peças de um tipo, quebrar todo o **gelo**, quebrar todas as **caixas** ou derrotar o **chefão**. O painel de cima mostra cada objetivo com ícone e "feito/alvo" (fica verde com um visto quando cumprido); a casa termina assim que o último é cumprido. Troca que não combina não gasta jogada.
-- **Chefões (casas 5, 10, 15, 20 e 25):** Rei-Inseto, Kong e os dois juntos, com barra de vida no painel. Cada peça limpa tira 1 de vida (gelo e caixas também) e cada especial disparada tira 3 a mais. A cada N jogadas o chefão ataca (o painel avisa "ATACA EM N JOGADAS"): o Rei-Inseto prende peças em **casulos** (1 golpe) e o Kong arremessa **barris** (2 golpes); os projéteis voam do painel até as casas. Com metade da vida, fica **BRAVO** e atinge uma casa a mais. Nunca mais de 12 caixas no tabuleiro.
+- **Chefões (casas 5, 10, 15, 20 e 25):** Rei-Inseto, Kong e os dois juntos, com barra de vida no painel. Cada peça limpa tira 1 de vida (gelo e caixas também) e cada efeito disparado tira 3 a mais (`dano_da_onda`: um raio, uma explosão; o combo Pena-Raio + Ovo Nova conta 6 raios, +18, e Ovo + Ovo conta uma explosão grande, +3). A cada N jogadas o chefão ataca (o painel avisa "ATACA EM N JOGADAS"): o Rei-Inseto prende peças em **casulos** (1 golpe) e o Kong arremessa **barris** (2 golpes); os projéteis voam do painel até as casas. Com metade da vida, fica **BRAVO** e atinge uma casa a mais. Nunca mais de 12 caixas no tabuleiro.
 - **Regras x tela:** `partida.py` tem as regras da casa (objetivos, dano, ataques) sem pygame; a sessão anima as etapas e o robô usa `Partida.jogar`. Um teste confere que os dois caminhos dão o mesmo tabuleiro.
-- **Estrelas e moedas:** estrelas pelas jogadas que sobram (3 com 30% ou mais, 2 com 12% ou mais). Moedas: 1 por especial criada, 1 a cada 2 jogadas que sobram, 4 pela vitória, mais o bônus de estrelas do mapa.
+- **Estrelas e moedas:** estrelas pelas jogadas que sobram (3 com 30% ou mais, 2 com 12% ou mais). Moedas (Fase 18): 2 por especial criada, 1 por jogada que sobrou, 10 pela vitória e 15 a mais nas casas de chefão, além do bônus de estrelas do mapa.
 - **Para mudar uma casa:** edite `CASAS_COMBINA3` em `config/combina3.py`: o tabuleiro é desenhado em texto (`.` comum, `#` pedra, `c`/`C` caixa de 1/2 golpes, `g`/`G` gelo de 1/2 camadas) e os objetivos são tuplas como `(COLETAR, 'pena', 15)`. Depois rode `python tools/playtest_combina3.py --casas N`. Para abrir direto: `python src/main.py --casa combina3 N`.
 - **Fora do Arcade:** o Combina 3 está no menu (`ORDEM_MAPAS`), mas não entra na jornada Arcade.
 
@@ -220,9 +226,14 @@ Jogo de combinar três com as peças do nosso universo: **pena, folha, ovo, moed
 Para mostrar o jogo inteiro (numa aula, por exemplo) e, em seguida, como ele fica para um jogador qualquer.
 
 - **Atalho:** **Ctrl + Shift + A** no menu principal liga; o mesmo atalho desliga. Ao ligar aparece "MODO APRESENTAÇÃO: TUDO LIBERADO" e um selo vermelho no topo do menu; ao desligar, "DE VOLTA AO SEU JOGO".
-- **Ligado:** todas as casas de todos os mapas abertas (sem estrelas, para ainda mostrar a conquista), todas as skins e cenários, 99.999 moedas e os atalhos de teste no Clássico e no Modo Livre (G Galaga, K Donkey, F pássaros, B chefão, C bônus, T perto do gatilho, V Honra Máxima, 1 a 0 níveis).
+- **Ligado:** todas as casas de todos os mapas abertas (sem estrelas, para ainda mostrar a conquista; "Resetar progresso" recomeça a apresentação, não o jogo real), todas as skins e cenários, 99.999 moedas e os atalhos de teste no Clássico e no Modo Livre (G Galaga, K Donkey, F pássaros, B chefão, C bônus, T perto do gatilho, V Honra Máxima, 1 a 0 níveis).
 - **O jogo de verdade fica intacto:** o save do jogador é gravado e guardado de lado; o perfil de apresentação vive só na memória (`save.gravavel = False`) e o ranking do clássico não é gravado. Desligar, ou simplesmente fechar o jogo, volta tudo como era. Só as configurações (música, efeitos) são as mesmas nos dois.
 - **Código:** `systems/apresentacao.py` (`ligar`, `desligar`, `alternar`, `perfil`); `ProgressStore.liberada` e `salvar_ranking` consultam `apresentacao.ligado()`; o clássico usa os atalhos se `MODO_TESTE or apresentacao.ligado()` (a física não muda: o teste de referência continua igual).
+
+## Sons e dicas dos modos novos (Fase 18)
+
+- **Sons:** 15 efeitos de 8 bits sintetizados por `tools/gerar_sons.py` (só biblioteca padrão; semente fixa, então rodar de novo gera os mesmos arquivos). Estilingue: elástico ao lançar, habilidade, madeira, gelo e pedra quebrando (cada material soa diferente), explosão dos barris e do Ovo Nova, guincho do inseto. Combina 3: "pop" que sobe um tom a cada cascata (`estouro1` a `estouro4`), arpejo de peça especial nova, zap da Pena-Raio/Arco-íris, explosão do Ovo Nova, gelo, caixas, chefão ferido e o rosnado do ataque. Carregados em `Recursos.sons` (`SONS_MODOS_NOVOS`). Para mudar um som, edite a função dele no gerador e rode `python tools/gerar_sons.py`.
+- **Dicas de tutorial:** um balão "DICA" aparece na primeira vez que o jogador encontra cada coisa: mirar, cada pássaro especial, barris e chefão no Estilingue; trocar, coletar, gelo, caixas, chefão, cada peça especial e o combo de duas especiais no Combina 3. Uma por vez, por até 7 s (some antes se o jogador agir depois de 2,5 s). As já vistas ficam na seção `tutorial` do save; "Resetar progresso" (e o Modo Apresentação) mostram todas de novo. Textos em `config/tutorial.py`; a sessão só pede pelo nome (`guia.pedir('c3_gelo')`), e nome errado dá erro nos testes.
 
 ## Bônus com cara nova (modos novos)
 
@@ -265,7 +276,8 @@ Fontes (`ui/theme.py: Fonts`) e textos prontos (`ui/widgets.py`) ficam em cache 
   "skins":     {"owned": ["classico", "azul"], "equipped": "azul"},
   "scenarios": {"owned": ["bg", "praia"], "mode": "aleatorio", "fixed": "bg", "playlist": ["bg", "praia"]},
   "progress":  {"flappy": {"estrelas": [3, 2, 0, ...]}},
-  "records":   {"free_best_streak": 0} }
+  "records":   {"free_best_streak": 0},
+  "tutorial":  {"vistas": ["c3_trocar", "est_mirar"]} }
 ```
 
 Versão 2 (Fase 9): a migração 1 → 2 só acrescenta `scenarios` com o cenário básico; moedas, skins e estrelas ficam como estavam.

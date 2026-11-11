@@ -4,7 +4,7 @@ from scenarios import FakeClock
 
 from flappy_arcade.config.difficulty_profiles import NIVEIS
 from flappy_arcade.config.economy import (BONUS_POR_SEQUENCIA, SEQUENCIA_PARA_BONUS, bonus_por_estrela)
-from flappy_arcade.config.levels import (CASAS, CHEFE_ABERTURA_A_FRENTE, OSCILACAO_CHEFE_MAXIMA, meta_chefe_flappy,
+from flappy_arcade.config.levels import (CASAS, ORDEM_MAPAS, CHEFE_ABERTURA_A_FRENTE, OSCILACAO_CHEFE_MAXIMA, meta_chefe_flappy,
                                          meta_flappy, tem_chefe)
 from flappy_arcade.config.scenarios import CENARIOS
 from flappy_arcade.config.skins import SKINS
@@ -60,10 +60,14 @@ def test_meta_do_chefao_cresce_e_supera_as_vizinhas():
 
 
 # ---------------------------------------------------------------- economia
-def test_mapas_pagam_cerca_de_um_terco_da_loja():
+def test_mapas_pagam_menos_da_metade_da_loja():
+    """Fase 18: os cinco mapas do menu (com o Estilingue e o Combina 3) e a jornada Arcade, com 3
+    estrelas, pagam ~39% da loja em bônus; com as moedas coletadas, ~45%. O resto vem do Modo Livre."""
     loja = sum(s.preco for s in SKINS) + sum(c.preco for c in CENARIOS)
-    estrelas = 4 * sum(3 * bonus_por_estrela(c) for c in range(1, CASAS + 1))     # 4 mapas, 3 estrelas
-    assert 0.2 <= estrelas / loja <= 0.4, f'{estrelas} de {loja}'
+    trilhas = len(ORDEM_MAPAS) + 1                                                   # + a jornada Arcade
+    assert trilhas == 6
+    estrelas = trilhas * sum(3 * bonus_por_estrela(c) for c in range(1, CASAS + 1))
+    assert 0.3 <= estrelas / loja <= 0.42, f'{estrelas} de {loja}'
 
 
 def test_primeiras_casas_ja_compram_uma_fantasia_simples():

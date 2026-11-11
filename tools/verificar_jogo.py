@@ -6,7 +6,7 @@
 O que confere:
   1. ambiente (Python e pygame);
   2. arquivos: imagens, músicas, todas as skins e todos os cenários do catálogo;
-  3. telas: menu, os quatro mapas, casas de cada mapa (comum e chefão), Modo Livre
+  3. telas: menu, todos os mapas (com o Estilingue e o Combina 3), casas de cada mapa (comum e chefão), Modo Livre
      atravessando a Galaga e o Donkey com os bônus, clássico, loja (abas, filtros e
      vistas), Equipamentos (fixo e aleatório), configurações e pausa;
   4. a suíte de testes (python -m pytest), inclusive o golden master do clássico.

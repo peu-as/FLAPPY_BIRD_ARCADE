@@ -16,23 +16,14 @@ from ..gameplay.level_session import criar_sessao
 from ..ui.theme import Palette
 from .game_scene import TEXTO_ATALHOS, preparar_recompensas, quer_pausar
 from .pause_scene import PauseScene
-from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, estrela, painel, texto
+from ..systems.tutorial import RegistroDicas
+from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, estrela, painel, quebrar_linhas, texto
 
 ABERTURA, JOGANDO, RESULTADO = 'ABERTURA', 'JOGANDO', 'RESULTADO'
 INTERVALO_ESTRELAS = 0.35          # s entre uma estrela e outra no resultado
 
 
-def _quebrar(conteudo, tamanho, largura):
-    """Quebra um texto em linhas que cabem na largura."""
-    linhas, atual = [], ''
-    for palavra in conteudo.split():
-        teste = f'{atual} {palavra}'.strip()
-        if texto(teste, tamanho, contorno=None).get_width() <= largura:
-            atual = teste
-        else:
-            linhas.append(atual)
-            atual = palavra
-    return linhas + [atual] if atual else linhas
+_quebrar = quebrar_linhas
 
 
 class LevelScene(Scene):
@@ -45,6 +36,8 @@ class LevelScene(Scene):
         self.cor = cor_da_casa(mapa, casa)
         self.session = criar_sessao(mapa, casa, ctx.resources, ctx.audio, ctx.clock)
         preparar_recompensas(self.session, ctx)
+        if hasattr(self.session, 'preparar_tutorial'):        # modos novos: dicas na primeira vez
+            self.session.preparar_tutorial(RegistroDicas(ctx.save))
         self.session.TEXTO_ATALHOS = TEXTO_ATALHOS
         self.depositadas = 0          # moedas (com bônus) já levadas à carteira
         self.bonus = 0

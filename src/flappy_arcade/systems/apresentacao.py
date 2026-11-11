@@ -76,6 +76,14 @@ def desligar(ctx=None):
         ctx.bus.emit('coins_changed', saldo=ctx.wallet.saldo)
 
 
+def recomecar(ctx):
+    """Resetar progresso com o Modo Apresentação ligado: volta ao perfil com tudo liberado
+    (sem estrelas e sem dicas vistas). O save real continua guardado de lado, intacto."""
+    if ligado():
+        ctx.save.data = perfil(_estado['guardado'][0])
+        ctx.bus.emit('coins_changed', saldo=ctx.wallet.saldo)
+
+
 def alternar(ctx):
     """Liga ou desliga. Devolve True se ficou ligado."""
     (desligar if ligado() else ligar)(ctx)

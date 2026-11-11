@@ -80,3 +80,14 @@ def test_pasta_sem_permissao_nao_trava_o_jogo(tmp_path):
     save.load()
     assert save.save() is False
     assert save.gravavel is False
+
+
+def test_dois_saves_corrompidos_no_mesmo_segundo_nao_se_sobrescrevem(tmp_path, monkeypatch):
+    import time as modulo_time
+    monkeypatch.setattr(modulo_time, 'strftime', lambda formato: '20261111-120000')
+    caminho = tmp_path / 'save.json'
+    for conteudo in ('{quebrado 1', '{quebrado 2'):
+        caminho.write_text(conteudo, encoding='utf-8')
+        SaveManager(caminho).load()
+    isolados = sorted(x.read_text(encoding='utf-8') for x in tmp_path.glob('save.corrupt-*.json'))
+    assert isolados == ['{quebrado 1', '{quebrado 2']

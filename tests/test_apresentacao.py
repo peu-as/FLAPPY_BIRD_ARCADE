@@ -165,3 +165,18 @@ def test_atalhos_de_teste_valem_no_modo_livre(app):
     assert apertar_g() == 'JOGO'                                   # jogador comum: G não faz nada
     apresentacao.ligar(app.ctx)
     assert apertar_g() == 'ALERTA'                                 # apresentação: G chama a Galaga
+
+
+def test_resetar_na_apresentacao_volta_a_tudo_liberado(app):
+    from flappy_arcade.scenes.settings_scene import SettingsScene
+    ctx = app.ctx
+    ctx.wallet.depositar(12)
+    antes = no_disco(ctx)
+    apresentacao.ligar(ctx)
+    ctx.wallet.gastar(500)
+    ctx.progress.registrar('flappy', 1, 3)
+    SettingsScene(ctx)._apagar()
+    assert ctx.wallet.saldo == apresentacao.MOEDAS and ctx.progress.total('flappy') == 0
+    assert all(ctx.shop.possui(s.id) for s in SKINS) and ctx.progress.liberada('flappy', 25)
+    apresentacao.desligar(ctx)
+    assert no_disco(ctx) == antes and ctx.wallet.saldo == 12

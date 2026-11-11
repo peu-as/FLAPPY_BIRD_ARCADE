@@ -7,6 +7,7 @@ import pygame
 
 from ..config.constants import ALTURA, LARGURA
 from ..core.scene import Scene
+from ..systems import apresentacao
 from ..systems.settings_store import EFEITOS_VISUAIS, MUSICA, SFX
 from ..ui.theme import Palette
 from ..ui.widgets import Botao, GrupoBotoes, LinhaInterruptor, desenhar_texto, painel
@@ -80,7 +81,10 @@ class SettingsScene(OverlayScene):
         self.confirmando = False
 
     def _apagar(self):
-        self.ctx.save.reset_progress()
+        if apresentacao.ligado():
+            apresentacao.recomecar(self.ctx)          # recomeça a apresentação, não o jogo real
+        else:
+            self.ctx.save.reset_progress()
         self.ctx.bus.emit('progress_reset')
         self.ctx.audio.play_sfx('colisao', 0.4)
         self.confirmando = False
