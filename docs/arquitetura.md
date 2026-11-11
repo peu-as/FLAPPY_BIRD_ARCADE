@@ -1,6 +1,6 @@
 # Arquitetura — Flappy Arcade
 
-Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · `--casa estilingue 5` abre uma casa de qualquer mapa · testes: `python -m pytest` · antes do commit: `python tools/verificar_jogo.py` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
+Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · `--casa estilingue 5` abre uma casa de qualquer mapa · testes: `python -m pytest` · antes do commit: `python tools/verificar_jogo.py` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py` · **Modo Apresentação: Ctrl + Shift + A no menu principal**
 
 ## Pastas
 
@@ -27,6 +27,7 @@ src/
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
       save_manager.py        save.json versionado, atômico, com backup
+      apresentacao.py        Modo Apresentação (Ctrl+Shift+A): perfil com tudo liberado, só na memória
       settings_store.py      música / SFX / efeitos visuais
       audio_manager.py       SFX e música em canais separados
       ranking.py             Top 10 (ranking.json)
@@ -88,6 +89,7 @@ tests/
   test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
   test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
   test_estilingue.py         Estilingue: casas estáveis, materiais, barris, habilidades, sessão
+  test_apresentacao.py       Modo Apresentação: tudo liberado e o save real intacto
   test_combina3.py           Combina 3: cada regra com tabuleiro montado à mão, cascatas, obstáculos, sessão
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
@@ -207,6 +209,15 @@ Jogo de combinar três com as peças do nosso universo: **pena, folha, ovo, moed
 - **Controles:** clicar em duas vizinhas ou arrastar (mouse); setas movem o cursor, ESPAÇO segura a peça e a seta seguinte troca.
 - **Casa (Fase 16):** bater a meta de pontos em 20 jogadas; troca que não combina não gasta jogada. Estrelas pelas jogadas que sobram (3 com 6 ou mais, 2 com 3 ou mais). Moedas: 1 por especial criada, 1 a cada 2 jogadas que sobram, 4 pela vitória.
 - **Para mudar:** números em `config/combina3.py`; confira com `python tools/playtest_combina3.py --casas`. Para abrir direto: `python src/main.py --casa combina3 1` (o botão do menu é ligado na Fase 17, junto com o mapa de objetivos variados).
+
+## Modo Apresentação (atalho secreto)
+
+Para mostrar o jogo inteiro (numa aula, por exemplo) e, em seguida, como ele fica para um jogador qualquer.
+
+- **Atalho:** **Ctrl + Shift + A** no menu principal liga; o mesmo atalho desliga. Ao ligar aparece "MODO APRESENTAÇÃO: TUDO LIBERADO" e um selo vermelho no topo do menu; ao desligar, "DE VOLTA AO SEU JOGO".
+- **Ligado:** todas as casas de todos os mapas abertas (sem estrelas, para ainda mostrar a conquista), todas as skins e cenários, 99.999 moedas, o Combina 3 no menu e os atalhos de teste no Clássico e no Modo Livre (G Galaga, K Donkey, F pássaros, B chefão, C bônus, T perto do gatilho, V Honra Máxima, 1 a 0 níveis).
+- **O jogo de verdade fica intacto:** o save do jogador é gravado e guardado de lado; o perfil de apresentação vive só na memória (`save.gravavel = False`) e o ranking do clássico não é gravado. Desligar, ou simplesmente fechar o jogo, volta tudo como era. Só as configurações (música, efeitos) são as mesmas nos dois.
+- **Código:** `systems/apresentacao.py` (`ligar`, `desligar`, `alternar`, `perfil`); `ProgressStore.liberada` e `salvar_ranking` consultam `apresentacao.ligado()`; o clássico usa os atalhos se `MODO_TESTE or apresentacao.ligado()` (a física não muda: o teste de referência continua igual).
 
 ## Bônus com cara nova (modos novos)
 

@@ -35,6 +35,7 @@ from ..config.constants import (
     Y_TABELA_RANKING,
 )
 from ..config.debug import ATALHO_INVALIDA_RANKING, MODO_TESTE, TECLAS_NIVEL
+from ..systems import apresentacao
 from .difficulty import (
     DificuldadeOriginal,
     desvio_maximo_passagem,
@@ -1102,7 +1103,8 @@ class ClassicSession:
             # consome a tecla antes, por isso dá para digitar números no nome sem
             # mudar a dificuldade. Os atalhos de fase passam pelo ALERTA de 5 s, como
             # no jogo real, e NÃO alteram o cronograma de pontuação.
-            if MODO_TESTE and self.estado in ESTADOS_ATIVOS and not self.pausado:
+            # (no Modo Apresentação, systems/apresentacao.py, também valem)
+            if (MODO_TESTE or apresentacao.ligado()) and self.estado in ESTADOS_ATIVOS and not self.pausado:
                 self.tratar_atalho_teste(evento.key)
             # X lança o Banana-rang. Esta linha só é alcançada FORA do cadastro (o
             # return lá em cima trata a digitação do nome), então digitar "x" no nome é seguro.

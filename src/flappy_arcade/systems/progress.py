@@ -4,9 +4,11 @@ Formato no save (seção "progress"):
     {"flappy": {"estrelas": [3, 2, 0, 0, ...]}}      # 25 números de 0 a 3
 
 As casas liberadas não são gravadas: saem das estrelas (a casa N + 1 abre
-quando a N tem estrela), então nunca ficam inconsistentes.
+quando a N tem estrela), então nunca ficam inconsistentes. No Modo Apresentação
+(systems/apresentacao.py) todas abrem.
 """
 from ..config.levels import CASAS, VIDAS_POR_CASA
+from . import apresentacao
 
 
 class ProgressStore:
@@ -33,7 +35,7 @@ class ProgressStore:
         return self._lista(mapa)[casa - 1]
 
     def liberada(self, mapa, casa):
-        return 1 <= casa <= CASAS and (casa == 1 or self.estrelas(mapa, casa - 1) > 0)
+        return 1 <= casa <= CASAS and (casa == 1 or apresentacao.ligado() or self.estrelas(mapa, casa - 1) > 0)
 
     def concluida(self, mapa, casa):
         return self.estrelas(mapa, casa) > 0

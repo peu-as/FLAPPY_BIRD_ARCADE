@@ -24,6 +24,8 @@ def pygame_religado():
     os testes seguintes o encontram ligado de novo. Eventos que sobrarem
     na fila também não vazam para o próximo teste."""
     yield
+    from flappy_arcade.systems import apresentacao
+    apresentacao.desligar()        # o Modo Apresentação nunca vaza para o próximo teste
     if pygame.get_init():
         pygame.event.clear()
     if not pygame.get_init() or not pygame.font.get_init() or pygame.display.get_surface() is None:

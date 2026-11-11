@@ -8,6 +8,7 @@ import time
 
 from ..config.constants import MAX_NOME, MAX_REGISTROS, NIVEL_MAXIMO
 from ..core.paths import ARQUIVO_RANKING, ARQUIVO_RECORDE
+from . import apresentacao
 
 
 def ler_recorde():
@@ -86,8 +87,11 @@ def salvar_ranking(registros, ultimo_jogador):
 
     A escrita é "atômica": grava num arquivo temporário e só então troca o
     arquivo definitivo (os.replace). Se o jogo fechar no meio, o ranking
-    antigo continua íntegro.
+    antigo continua íntegro. No Modo Apresentação nada é gravado (o ranking
+    de verdade fica como estava).
     """
+    if apresentacao.ligado():
+        return True
     try:
         ARQUIVO_RANKING.parent.mkdir(parents=True, exist_ok=True)
         temporario = ARQUIVO_RANKING.with_suffix('.tmp')

@@ -3,6 +3,9 @@
 O cenário é o do próprio jogo, em movimento (céu deslizando, chão rolando e
 pássaros cruzando ao fundo). Os botões entram em cascata ao abrir o jogo.
 Com os efeitos visuais desligados, tudo fica parado, sem perder função.
+
+Atalho secreto: Ctrl + Shift + A liga/desliga o Modo Apresentação (tudo liberado,
+sem tocar no save de verdade; veja systems/apresentacao.py).
 """
 import math
 import random
@@ -16,6 +19,7 @@ from ..core.scene import Scene
 from ..gameplay.coins import icone_moeda
 from ..gameplay.flappy import Chao
 from ..gameplay.resources import ajustar_sprite
+from ..systems import apresentacao
 from ..ui.theme import Palette
 from ..ui.widgets import Botao, GrupoBotoes, desenhar_texto, ease_out_back, painel, texto
 from .equipment_scene import EquipmentScene
@@ -31,6 +35,7 @@ RECORTE_LOGO = (0, 0, 368, 96)     # só a palavra "FlappyBird" do logotipo
 ENTRADA, ATRASO_ENTRADA = 0.5, 0.06
 VELOCIDADE_CEU = 14                # px/s
 PASSAROS_FUNDO = ('Fishy', 'Propellor', 'Bubble', 'Speed')     # sprites que cruzam o céu
+TEMPO_AVISO = 3.0                  # s: aviso ao ligar/desligar o Modo Apresentação
 
 
 def icone_estilingue(r):
@@ -82,6 +87,7 @@ class MainMenuScene(Scene):
             'arcade': ajustar_sprite(r.chefe_galaga, 30),
         }
         self.sprites_fundo = [ajustar_sprite(r.especiais[nome], 40) for nome in PASSAROS_FUNDO]
+        self.aviso = ('', 0.0)             # (texto, segundos restantes)
         self.grupo = GrupoBotoes(self._criar_botoes())
 
     # ------------------------------------------------------------ botões
@@ -102,8 +108,12 @@ class MainMenuScene(Scene):
             modo(i, MAPAS[mapa].subtitulo.upper(), lambda m=mapa: self._abrir(MapScene(self.ctx, m)),
                  mapa, estrelas(mapa), estrela=True)
         n = len(ORDEM_MAPAS)
-        modo(n, 'COMBINA 3', None, 'combina3', 'em breve')        # a próxima fase (match-3)
-        botoes[-1].habilitado = False
+        if apresentacao.ligado():                        # o mapa já existe; o botão abre de vez na Fase 17
+            modo(n, 'COMBINA 3', lambda: self._abrir(MapScene(self.ctx, 'combina3')), 'combina3',
+                 estrelas('combina3'), estrela=True)
+        else:
+            modo(n, 'COMBINA 3', None, 'combina3', 'em breve')    # a próxima fase (match-3)
+            botoes[-1].habilitado = False
         modo(n + 1, 'ARCADE (HISTÓRIA)', lambda: self._abrir(MapScene(self.ctx, 'arcade')), 'arcade',
              estrelas('arcade'), estilo='destaque', estrela=True)
         modo(n + 2, 'MODO LIVRE', lambda: self._abrir(GameScene(self.ctx, 'livre')), 'livre', 'treino')
@@ -132,6 +142,9 @@ class MainMenuScene(Scene):
     # ------------------------------------------------------------ cena
     def on_enter(self):
         self.ctx.audio.play_music(MUSICA_MENU, volume=0.5)
+        self._recriar_botoes()
+
+    def _recriar_botoes(self):
         indice = self.grupo.indice
         self.grupo = GrupoBotoes(self._criar_botoes())     # estrelas e saldo atualizados
         self.grupo.indice = indice
@@ -140,14 +153,28 @@ class MainMenuScene(Scene):
             self.entrada = ENTRADA + ATRASO_ENTRADA * len(self.grupo.botoes)   # só anima na 1ª vez
 
     def handle_event(self, event):
+        if apresentacao.eh_atalho(event):
+            self._alternar_apresentacao()
+            return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self._sair()
             return
         self.grupo.tratar_evento(event)
 
+    def _alternar_apresentacao(self):
+        if apresentacao.alternar(self.ctx):
+            self.aviso = ('MODO APRESENTAÇÃO: TUDO LIBERADO', TEMPO_AVISO)
+            self.ctx.audio.play_sfx('ponto', 0.6)
+        else:
+            self.aviso = ('DE VOLTA AO SEU JOGO', TEMPO_AVISO)
+            self.ctx.audio.play_sfx('pulo', 0.5)
+        self._recriar_botoes()
+
     def update(self, dt):
         efeitos = self.ctx.settings.visual_fx_enabled
         self.tempo += dt
+        texto_aviso, restante = self.aviso
+        self.aviso = (texto_aviso, max(0.0, restante - dt))
         self.entrada += dt
         if efeitos:
             self.ceu = (self.ceu + VELOCIDADE_CEU * dt) % self.fundo.get_width()
@@ -190,6 +217,22 @@ class MainMenuScene(Scene):
         self.chao.desenhar(surface)
         dica = texto('SETAS escolhem   ENTER confirma   ESC sai', 22, Palette.INK, None)
         surface.blit(dica, dica.get_rect(center=(LARGURA // 2, Y_CHAO + 70)))
+        self._desenhar_apresentacao(surface)
+
+    def _desenhar_apresentacao(self, surface):
+        """Selo enquanto o Modo Apresentação está ligado e o aviso ao ligar/desligar."""
+        if apresentacao.ligado():
+            selo = texto('MODO APRESENTAÇÃO', 20, Palette.WHITE, Palette.INK, 2)
+            caixa = selo.get_rect(midtop=(LARGURA // 2, 8)).inflate(20, 8)
+            painel(surface, caixa, Palette.DANGER, Palette.INK, raio=12, sombra=0, brilho=False)
+            surface.blit(selo, selo.get_rect(center=caixa.center))
+        mensagem, restante = self.aviso
+        if restante > 0:
+            img = texto(mensagem, 30, Palette.BIRD_YELLOW, Palette.INK, 3).copy()
+            img.set_alpha(round(255 * min(1.0, restante / 0.5)))
+            fundo = img.get_rect(center=(LARGURA // 2, Y_CHAO + 30)).inflate(28, 14)
+            painel(surface, fundo, Palette.INK, Palette.INK, raio=14, sombra=0, brilho=False)
+            surface.blit(img, img.get_rect(center=fundo.center))
 
     def _desenhar_saldo(self, surface):
         rotulo = texto(str(self.ctx.wallet.saldo), 28, Palette.WHITE, Palette.INK, 2)
