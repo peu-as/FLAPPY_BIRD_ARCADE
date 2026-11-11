@@ -44,13 +44,16 @@ def test_tela_de_modos(ctx):
     menu = cenas.top
     quadros(menu, 5)
     rotulos = [b.rotulo for b in menu.grupo.botoes]
-    assert rotulos[6:] == ['EQUIPAMENTOS', 'CONFIGURAÇÕES', 'SAIR', 'LOJA']
-    assert all(b.habilitado for b in menu.grupo.botoes)
+    assert rotulos[:8] == ['DONKEY KONG', 'GALAGA', 'FLAPPY CLÁSSICO', 'ESTILINGUE', 'COMBINA 3',
+                           'ARCADE (HISTÓRIA)', 'MODO LIVRE', 'CLÁSSICO']
+    assert rotulos[8:] == ['EQUIPAMENTOS', 'CONFIGURAÇÕES', 'SAIR', 'LOJA']
+    desligados = [b.rotulo for b in menu.grupo.botoes if not b.habilitado]
+    assert desligados == ['COMBINA 3']                                     # a próxima fase
     tecla(menu, pygame.K_RETURN)                                           # 1º botão: Donkey Kong
     assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'donkey'
     tecla(cenas.top, pygame.K_ESCAPE)
     assert cenas.top is menu
-    for _ in range(3):
+    for _ in range(4):                                                     # pula o COMBINA 3 (em breve)
         tecla(menu, pygame.K_DOWN)
     assert menu.grupo.botoes[menu.grupo.indice].rotulo == 'ARCADE (HISTÓRIA)'
     tecla(menu, pygame.K_RETURN)

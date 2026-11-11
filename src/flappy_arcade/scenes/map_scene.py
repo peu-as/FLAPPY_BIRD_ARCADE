@@ -220,7 +220,8 @@ class MapScene(Scene):
 
     def _desenhar_fundo(self, surface, efeitos):
         if self.mapa != 'arcade':
-            self._pintar(surface, {'flappy': 'dia', 'donkey': 'selva', 'galaga': 'espaco'}[self.mapa], efeitos)
+            self._pintar(surface, {'flappy': 'dia', 'donkey': 'selva', 'galaga': 'espaco',
+                                   'estilingue': 'tarde'}[self.mapa], efeitos)
             return
         # Jornada: o cenário acompanha o capítulo no meio da tela, com uma
         # transição suave perto da divisa entre dois capítulos.

@@ -150,3 +150,44 @@ python tools/verificar_jogo.py
 ```
 
 Abre todas as telas sem janela, confere as artes e roda os testes; termina com **PRONTO PARA O COMMIT** ou com a lista do que corrigir.
+
+
+---
+
+# Fase 15 — modo Estilingue
+
+## Como a dificuldade foi medida
+
+`tools/playtest_estilingue.py` tem dois robôs:
+
+- **Perfeito** (padrão): busca exaustiva de ângulo, força e momento da habilidade. Responde "esta casa dá para vencer?". As 25 casas dão.
+- **Humano** (`--humano N`): escolhe a melhor jogada, mas a executa com erro de mira de uma pessoa (±2,5° no ângulo, ±5% na força, ±0,15 s no clique da habilidade). Mede a dificuldade de verdade.
+
+## Calibração dos materiais
+
+Medida com o pássaro comum batendo de frente num bloco de 40×80 (`tests/test_estilingue.py` confere):
+
+| Material | Vida | Quebra com |
+|---|---|---|
+| Gelo | 12 | um toque médio (~500 px/s) |
+| Madeira | 48 | um bom acerto (~700 px/s); a Semente-Foguete faz 2,2x de dano |
+| Pedra | 380 | ~3 batidas fortes, ou explosões |
+| Barril | 18 | qualquer batida; explode (raio 140 px) e pode explodir outros |
+| Inseto / chefão | 32 / 240 | uma batida firme / vários golpes |
+
+## Curva (robô humano, 8 tentativas por casa)
+
+| Casas | Vitórias | Estrelas médias | Leitura |
+|---|---|---|---|
+| 1–6 | 87–100% | 1,6–2,9 | aprender a mirar, gelo, Pena Dupla, barris (chefão 5: 87%) |
+| 7–13 | 75–100% | 1,2–1,9 | muros, Semente-Foguete, Ovo Nova (chefão 10: 87%) |
+| 14–20 | 75–100% | 1,5–2,3 | fortalezas de pedra (chefão 15: 100% / 2,0; chefão 20: 75%) |
+| 21–25 | 50–100% | 1,2–2,2 | castelo final (24 e 25: 50%) |
+
+Ajustes feitos a partir das medições: a casa 2 trocou uma estrutura de madeira por gelo (estava em 40%); nas casas finais o Ovo Nova passou a vir mais tarde na fila (sozinho, abrindo a casa, resolvia tudo); a casa 11 ganhou um pássaro (37% → 87%); as casas 19 e 20 perderam um (fáceis demais).
+
+**Para o seu teste de jogo:** o robô mira com uma precisão constante; uma pessoa erra mais no começo e acerta mais depois de algumas tentativas na mesma casa. Se alguma casa parecer injusta, mude a fila de pássaros (`passaros`) ou o material de um módulo em `CASAS_ESTILINGUE` e rode `python tools/playtest_estilingue.py --casas N` e `--humano 8 --casas N`.
+
+## Desempenho
+
+A física é leve: 0,02–0,09 ms por quadro nas casas mais cheias. O executável (com a pymunk dentro) tem ~30 MB e abre as casas do Estilingue.

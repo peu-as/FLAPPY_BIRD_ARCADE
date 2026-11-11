@@ -24,13 +24,35 @@ from .map_scene import MapScene
 from .settings_scene import SettingsScene
 from .shop_scene import ShopScene
 
-LARGURA_BOTAO, ALTURA_BOTAO, ESPACO = 430, 54, 10
+LARGURA_BOTAO, ALTURA_BOTAO, ESPACO = 430, 46, 8      # 8 modos em uma coluna
 LARGURA_LINHA_DE_BAIXO = 500      # equipamentos, configurações e sair
 Y_PRIMEIRO_BOTAO = 246
 RECORTE_LOGO = (0, 0, 368, 96)     # só a palavra "FlappyBird" do logotipo
 ENTRADA, ATRASO_ENTRADA = 0.5, 0.06
 VELOCIDADE_CEU = 14                # px/s
 PASSAROS_FUNDO = ('Fishy', 'Propellor', 'Bubble', 'Speed')     # sprites que cruzam o céu
+
+
+def icone_estilingue(r):
+    """Um estilingue de madeira com um pássaro no elástico."""
+    icone = pygame.Surface((32, 32), pygame.SRCALPHA)
+    madeira, escuro = (150, 92, 46), (84, 50, 26)
+    pygame.draw.line(icone, madeira, (16, 31), (16, 18), 5)
+    pygame.draw.line(icone, madeira, (16, 19), (8, 6), 4)
+    pygame.draw.line(icone, madeira, (16, 19), (24, 6), 4)
+    pygame.draw.line(icone, escuro, (8, 7), (24, 7), 2)
+    passaro = ajustar_sprite(r.passaros['dia'][1], 18)
+    icone.blit(passaro, passaro.get_rect(center=(16, 6)))
+    return icone
+
+
+def icone_combina3():
+    """Três peças do Combina 3 (as cores dos bônus) em fila."""
+    icone = pygame.Surface((32, 32), pygame.SRCALPHA)
+    for i, cor in enumerate(((255, 222, 72), (110, 200, 255), (110, 220, 110))):
+        pygame.draw.circle(icone, (52, 40, 56), (6 + i * 10, 16), 6)
+        pygame.draw.circle(icone, cor, (6 + i * 10, 16), 4)
+    return icone
 
 
 class MainMenuScene(Scene):
@@ -50,12 +72,14 @@ class MainMenuScene(Scene):
         self.voadores = []                 # pássaros de fundo: [x, y, velocidade, sprite]
         self.proximo_voador = 1.0
         self.icones = {
-            'donkey': ajustar_sprite(r.kong['parado'], 34),
-            'galaga': ajustar_sprite(next(iter(r.inimigos.values())), 32),
-            'flappy': ajustar_sprite(r.passaros['dia'][1], 34),
-            'livre': ajustar_sprite(r.passaros['tarde'][1], 34),
-            'classico': ajustar_sprite(r.medalhas['ouro'], 30),
-            'arcade': ajustar_sprite(r.chefe_galaga, 34),
+            'donkey': ajustar_sprite(r.kong['parado'], 30),
+            'galaga': ajustar_sprite(next(iter(r.inimigos.values())), 28),
+            'flappy': ajustar_sprite(r.passaros['dia'][1], 30),
+            'estilingue': icone_estilingue(r),
+            'combina3': icone_combina3(),
+            'livre': ajustar_sprite(r.passaros['tarde'][1], 30),
+            'classico': ajustar_sprite(r.medalhas['ouro'], 26),
+            'arcade': ajustar_sprite(r.chefe_galaga, 30),
         }
         self.sprites_fundo = [ajustar_sprite(r.especiais[nome], 40) for nome in PASSAROS_FUNDO]
         self.grupo = GrupoBotoes(self._criar_botoes())
@@ -69,20 +93,23 @@ class MainMenuScene(Scene):
             rect = pygame.Rect(0, 0, LARGURA_BOTAO, ALTURA_BOTAO)
             rect.midtop = (LARGURA // 2, Y_PRIMEIRO_BOTAO + i * (ALTURA_BOTAO + ESPACO))
             botoes.append(Botao(rect, rotulo, acao, estilo, detalhe, self.icones[icone],
-                                tamanho_texto=30, mostrar_estrela=estrela))
+                                tamanho_texto=28, mostrar_estrela=estrela))
 
         def estrelas(mapa):
             return f'{progresso.total(mapa)}/{progresso.maximo()}'
 
-        for i, mapa in enumerate(ORDEM_MAPAS):
+        for i, mapa in enumerate(ORDEM_MAPAS):          # Donkey, Galaga, Flappy, Estilingue
             modo(i, MAPAS[mapa].subtitulo.upper(), lambda m=mapa: self._abrir(MapScene(self.ctx, m)),
                  mapa, estrelas(mapa), estrela=True)
-        modo(3, 'ARCADE (HISTÓRIA)', lambda: self._abrir(MapScene(self.ctx, 'arcade')), 'arcade',
+        n = len(ORDEM_MAPAS)
+        modo(n, 'COMBINA 3', None, 'combina3', 'em breve')        # a próxima fase (match-3)
+        botoes[-1].habilitado = False
+        modo(n + 1, 'ARCADE (HISTÓRIA)', lambda: self._abrir(MapScene(self.ctx, 'arcade')), 'arcade',
              estrelas('arcade'), estilo='destaque', estrela=True)
-        modo(4, 'MODO LIVRE', lambda: self._abrir(GameScene(self.ctx, 'livre')), 'livre', 'treino')
-        modo(5, 'CLÁSSICO', lambda: self._abrir(GameScene(self.ctx, 'classico')), 'classico', 'original',
+        modo(n + 2, 'MODO LIVRE', lambda: self._abrir(GameScene(self.ctx, 'livre')), 'livre', 'treino')
+        modo(n + 3, 'CLÁSSICO', lambda: self._abrir(GameScene(self.ctx, 'classico')), 'classico', 'original',
              estilo='secundario')
-        y = Y_PRIMEIRO_BOTAO + 6 * (ALTURA_BOTAO + ESPACO) + 6
+        y = Y_PRIMEIRO_BOTAO + (n + 4) * (ALTURA_BOTAO + ESPACO) + 6
         x = (LARGURA - LARGURA_LINHA_DE_BAIXO) // 2
         botoes.append(Botao((x, y, 190, 48), 'EQUIPAMENTOS',
                             lambda: self._abrir(EquipmentScene(self.ctx)), 'secundario', tamanho_texto=24))

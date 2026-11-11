@@ -23,6 +23,7 @@ from ..config.levels import (
 from .classic_session import ClassicSession
 from .bonus_visuals import SessaoComBonusNovos
 from .coins import SessaoComMoedas
+from .estilingue.sessao import EstilingueSession
 from .scenery import SessaoComCenarios
 from .difficulty_curve import CurvaDificuldade
 
@@ -203,6 +204,7 @@ SESSOES_POR_MAPA = {
     'flappy': FlappyLevelSession,
     'galaga': GalagaLevelSession,
     'donkey': DonkeyLevelSession,
+    'estilingue': EstilingueSession,       # física própria (pymunk): gameplay/estilingue/
 }
 
 

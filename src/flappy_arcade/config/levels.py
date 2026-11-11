@@ -66,8 +66,9 @@ MAPAS = {
     'galaga': Mapa('galaga', 'ESQUADRILHA GALAGA', 'Galaga', (96, 128, 236)),
     'flappy': Mapa('flappy', 'CÉUS DO FLAPPY', 'Flappy clássico', (80, 160, 40)),
     'arcade': Mapa('arcade', 'A GRANDE JORNADA', 'Arcade (história)', (200, 84, 200)),
+    'estilingue': Mapa('estilingue', 'TORRES DO ESTILINGUE', 'Estilingue', (206, 96, 48)),
 }
-ORDEM_MAPAS = ('donkey', 'galaga', 'flappy')     # mapas de um estilo só
+ORDEM_MAPAS = ('donkey', 'galaga', 'flappy', 'estilingue')     # mapas de um estilo só
 
 
 # ------------------------------------------------------------------ Arcade

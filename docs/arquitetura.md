@@ -1,6 +1,6 @@
 # Arquitetura — Flappy Arcade
 
-Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · testes: `python -m pytest` · antes do commit: `python tools/verificar_jogo.py` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
+Como rodar: `python src/main.py` (menu principal) · `--livre` ou `--classico` abrem direto · `--casa estilingue 5` abre uma casa de qualquer mapa · testes: `python -m pytest` · antes do commit: `python tools/verificar_jogo.py` · atalhos de teste: `$env:FLAPPY_DEBUG=1; python src/main.py`
 
 ## Pastas
 
@@ -21,6 +21,7 @@ src/
       levels.py              mapas de 25 casas + jornada Arcade (capítulos e etapas)
       economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
       skins.py               catálogo de skins: categorias, raridade, preço, cores, efeitos
+      estilingue.py          modo Estilingue: materiais, pássaros, física e as 25 casas
       scenarios.py           catálogo de cenários: preço, período (dia/tarde/noite), arquivo
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
@@ -45,11 +46,16 @@ src/
       donkey.py              fase Donkey Kong e Kong Furioso
       powerups.py, effects.py, hud.py
       bonus_visuals.py       visual novo dos bônus nos modos novos (itens, efeitos e nomes)
+      estilingue/            modo Estilingue (física pymunk, fora da física original)
+        mundo.py             peças, dano por impulso, explosões, habilidades (sem desenho)
+        visual.py            texturas, personagens, estilingue, mira, efeitos
+        sessao.py            uma casa: mira, voo, câmera, pontos, moedas, estrelas
       difficulty.py          tabelas originais (10 níveis) + justiça das passagens
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
     scenes/
-      main_menu.py           menu principal: modos, loja, equipamentos, configurações, sair
+      main_menu.py           menu principal: 8 modos (Combina 3 "em breve"), loja, equipamentos,
+                             configurações, sair
       pause_scene.py         pausa: continuar, configurações, recomeçar, sair
       settings_scene.py      configurações (interruptores) e resetar progresso
       map_scene.py           mapa de 25 casas com rolagem
@@ -76,6 +82,7 @@ tests/
   test_catalogs.py           categorias e preços, cenários, save v2, coleção de cenários
   test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
   test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
+  test_estilingue.py         Estilingue: casas estáveis, materiais, barris, habilidades, sessão
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
@@ -84,6 +91,7 @@ tools/
   playtest.py                robô com limites humanos joga as casas (veja docs/balanceamento.md)
   importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
   verificar_jogo.py          verificação final antes do commit (todas as telas + testes)
+  playtest_estilingue.py     robô do Estilingue: casa possível? e, com --humano, a dificuldade
   previa_artes.py            prévia para conferir tudo que foi importado (--previa X.png)
 assets/
   imgs/, audio/              artes e sons do jogo original
@@ -159,6 +167,18 @@ Modo Livre, mapas e jornada usam os cenários do jogador no Flappy; o clássico 
 - **Galaga ("Decolagem")**: o horizonte do cenário fica embaixo e se dissolve no espaço original; a formação continua voando no espaço puro. No chefão, o mundo escurece mais em 1 s. **Donkey ("Selva sobre o seu mundo")**: o cenário substitui o céu, tingido de selva à noite, atrás das duas camadas de palmeiras; rola a 0,05 (palmeiras a 0,15 e 0,35), espelhado para não ter emenda.
 - **Leitura garantida (exposição automática)**: cada cenário escurece só o necessário para a nave (faixa da nave) e as bananas (área de jogo do Donkey) terem contraste de pelo menos 3:1 com o fundo (`CONTRASTE_MINIMO`, o mínimo das diretrizes de acessibilidade para elementos gráficos). `tests/test_scenery.py` mede isso nos 31 cenários; cenário novo que não passar é escurecido sozinho.
 - As versões das fases são montadas uma vez (~28 ms), durante o alerta de 5 s que antecede a fase, e só as da fase da vez ficam na memória. Sem cenário (clássico), `FaseGalaga.desenhar_fundo` e `FaseDonkey.desenhar_fundo` desenham exatamente o original.
+
+## Modo Estilingue
+
+Inspirado nos jogos de arremesso com física. Os insetos da Esquadrilha Galaga (o Rei-Inseto em miniatura) roubaram os ovos e se escondem em fortalezas; o jogador lança o próprio pássaro (a skin equipada) com o estilingue. É um mapa de 25 casas como os outros: a sessão `EstilingueSession` cumpre o mesmo contrato da `LevelScene` (atualizar, desenhar, tratar_evento, resultado, estrelas, moedas), então abertura, estrelas, moedas, pausa e progresso vêm de graça.
+
+- **Física à parte:** usa a biblioteca **pymunk** (corpos rígidos 2D) só neste modo; a física original do Flappy/Galaga/Donkey não é tocada. Passos fixos (3 por quadro, 90 Hz), então a mesma jogada dá sempre o mesmo resultado; nada usa o `random` do jogo.
+- **Dano:** cada batida gera um impulso; o que passa de `IMPULSO_MINIMO` vira dano nas duas peças. Gelo quebra com um toque médio, madeira com um bom acerto, pedra com ~3 batidas fortes ou explosões. Peça que sai do mundo conta como derrubada.
+- **Elementos especiais:** blocos de gelo/madeira/pedra com rachaduras; **barris do Kong** que explodem em cadeia; três pássaros com habilidade (os nomes dos bônus): **Pena Dupla** (vira três), **Semente-Foguete** (dispara reto, 2,2x de dano em madeira), **Ovo Nova** (explode no clique ou 1,2 s depois de bater). Chefões: Rei-Inseto (5, 15), Kong (10, 20) e os dois juntos (25).
+- **Estrelas:** 3 sobrando 2 pássaros, 2 sobrando 1, 1 usando todos.
+- **Controles:** arrastar para trás e soltar (mouse) ou setas + ESPAÇO; no ar, clique/ESPAÇO usa a habilidade; roda do mouse ou A/D olham a fortaleza.
+- **Visual:** o fundo é o cenário que o jogador equipou (com paralaxe); câmera sobrevoa a fortaleza no começo e segue o pássaro.
+- **Para mudar uma casa:** edite `CASAS_ESTILINGUE` em `config/estilingue.py` (módulos `torre`, `casinha`, `piramide`, `muro`, `fortaleza`, `barril`) e rode `python tools/playtest_estilingue.py --casas N` (o robô diz se dá para vencer) e `--humano 8` (a dificuldade com erro de mira humano). Os testes conferem que toda fortaleza fica de pé sozinha.
 
 ## Bônus com cara nova (modos novos)
 
