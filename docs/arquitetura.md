@@ -22,7 +22,7 @@ src/
       economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
       skins.py               catálogo de skins: categorias, raridade, preço, cores, efeitos
       estilingue.py          modo Estilingue: materiais, pássaros, física e as 25 casas
-      combina3.py            modo Combina 3: tabuleiro, jogadas, metas das 25 casas, estrelas
+      combina3.py            modo Combina 3: objetivos, chefões e as 25 casas (tabuleiros em texto), estrelas
       scenarios.py           catálogo de cenários: preço, período (dia/tarde/noite), arquivo
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
@@ -54,7 +54,8 @@ src/
         sessao.py            uma casa: mira, voo, câmera, pontos, moedas, estrelas
       combina3/              modo Combina 3 (regras puras + desenho + sessão)
         tabuleiro.py         regras: trocas, combinações, especiais, cascatas, gelo/caixa/pedra (sem pygame)
-        visual.py            peças, animações de troca/queda, raios, explosões, textos
+        partida.py           regras de uma casa: objetivos, vida do chefão e ataques (sem pygame)
+        visual.py            peças, animações de troca/queda, raios, explosões, chefões, ataques, ícones
         sessao.py            uma casa: mouse/teclado, jogadas, meta, dica, moedas, estrelas
       difficulty.py          tabelas originais (10 níveis) + justiça das passagens
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
@@ -90,7 +91,7 @@ tests/
   test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
   test_estilingue.py         Estilingue: casas estáveis, materiais, barris, habilidades, sessão
   test_apresentacao.py       Modo Apresentação: tudo liberado e o save real intacto
-  test_combina3.py           Combina 3: cada regra com tabuleiro montado à mão, cascatas, obstáculos, sessão
+  test_combina3.py           Combina 3: cada regra com tabuleiro montado à mão, objetivos, chefões, ataques, sessão
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
@@ -100,7 +101,7 @@ tools/
   importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
   verificar_jogo.py          verificação final antes do commit (todas as telas + testes)
   playtest_estilingue.py     robô do Estilingue: casa possível? e, com --humano, a dificuldade
-  playtest_combina3.py       robô do Combina 3: pontos por partida e, com --casas, vitórias por casa
+  playtest_combina3.py       robô do Combina 3: pontos por partida e, com --casas, vitórias e estrelas por casa
   previa_artes.py            prévia para conferir tudo que foi importado (--previa X.png)
 assets/
   imgs/, audio/              artes e sons do jogo original
@@ -204,18 +205,22 @@ Jogo de combinar três com as peças do nosso universo: **pena, folha, ovo, moed
 
 - **Combos** (trocar duas especiais entre si): Pena-Raio + Pena-Raio = cruz; Ovo + Ovo = 5x5; Pena-Raio + Ovo = 3 linhas e 3 colunas; Arco-íris + especial = todas as peças daquele tipo viram a especial e disparam; Arco-íris + Arco-íris = o tabuleiro inteiro. Especial atingida por outra dispara em cadeia.
 - **Pontos:** 20 por peça, 60/120/200 ao criar Pena-Raio/Ovo Nova/Arco-íris; cada onda seguinte da mesma jogada multiplica (x2, x3...).
-- **Obstáculos (prontos no motor, entram nas casas na Fase 17):** **gelo** (camadas sobre a peça; perde uma quando a peça é limpa), **caixa** (ocupa a casa; quebra com limpeza ao lado ou efeito por cima) e **pedra** (fixa). As peças caem por trechos da coluna: param em cima de caixa e pedra, e peças novas entram no topo de cada trecho.
+- **Obstáculos:** **gelo** (camadas sob a peça; perde uma quando a peça é limpa; o grosso tem moldura dupla), **caixa** (ocupa a casa; quebra com limpeza ao lado ou efeito por cima) e **pedra** (fixa). As peças caem por trechos da coluna: param em cima de caixa e pedra, e peças novas entram no topo de cada trecho.
 - **Sem jogadas?** O tabuleiro embaralha as mesmas peças até existir uma troca válida. Parado por 5 s, o jogo mostra uma dica.
 - **Controles:** clicar em duas vizinhas ou arrastar (mouse); setas movem o cursor, ESPAÇO segura a peça e a seta seguinte troca.
-- **Casa (Fase 16):** bater a meta de pontos em 20 jogadas; troca que não combina não gasta jogada. Estrelas pelas jogadas que sobram (3 com 6 ou mais, 2 com 3 ou mais). Moedas: 1 por especial criada, 1 a cada 2 jogadas que sobram, 4 pela vitória.
-- **Para mudar:** números em `config/combina3.py`; confira com `python tools/playtest_combina3.py --casas`. Para abrir direto: `python src/main.py --casa combina3 1` (o botão do menu é ligado na Fase 17, junto com o mapa de objetivos variados).
+- **Objetivos (Fase 17):** cada casa tem um ou mais, todos obrigatórios: **pontos**, **coletar** peças de um tipo, quebrar todo o **gelo**, quebrar todas as **caixas** ou derrotar o **chefão**. O painel de cima mostra cada objetivo com ícone e "feito/alvo" (fica verde com um visto quando cumprido); a casa termina assim que o último é cumprido. Troca que não combina não gasta jogada.
+- **Chefões (casas 5, 10, 15, 20 e 25):** Rei-Inseto, Kong e os dois juntos, com barra de vida no painel. Cada peça limpa tira 1 de vida (gelo e caixas também) e cada especial disparada tira 3 a mais. A cada N jogadas o chefão ataca (o painel avisa "ATACA EM N JOGADAS"): o Rei-Inseto prende peças em **casulos** (1 golpe) e o Kong arremessa **barris** (2 golpes); os projéteis voam do painel até as casas. Com metade da vida, fica **BRAVO** e atinge uma casa a mais. Nunca mais de 12 caixas no tabuleiro.
+- **Regras x tela:** `partida.py` tem as regras da casa (objetivos, dano, ataques) sem pygame; a sessão anima as etapas e o robô usa `Partida.jogar`. Um teste confere que os dois caminhos dão o mesmo tabuleiro.
+- **Estrelas e moedas:** estrelas pelas jogadas que sobram (3 com 30% ou mais, 2 com 12% ou mais). Moedas: 1 por especial criada, 1 a cada 2 jogadas que sobram, 4 pela vitória, mais o bônus de estrelas do mapa.
+- **Para mudar uma casa:** edite `CASAS_COMBINA3` em `config/combina3.py`: o tabuleiro é desenhado em texto (`.` comum, `#` pedra, `c`/`C` caixa de 1/2 golpes, `g`/`G` gelo de 1/2 camadas) e os objetivos são tuplas como `(COLETAR, 'pena', 15)`. Depois rode `python tools/playtest_combina3.py --casas N`. Para abrir direto: `python src/main.py --casa combina3 N`.
+- **Fora do Arcade:** o Combina 3 está no menu (`ORDEM_MAPAS`), mas não entra na jornada Arcade.
 
 ## Modo Apresentação (atalho secreto)
 
 Para mostrar o jogo inteiro (numa aula, por exemplo) e, em seguida, como ele fica para um jogador qualquer.
 
 - **Atalho:** **Ctrl + Shift + A** no menu principal liga; o mesmo atalho desliga. Ao ligar aparece "MODO APRESENTAÇÃO: TUDO LIBERADO" e um selo vermelho no topo do menu; ao desligar, "DE VOLTA AO SEU JOGO".
-- **Ligado:** todas as casas de todos os mapas abertas (sem estrelas, para ainda mostrar a conquista), todas as skins e cenários, 99.999 moedas, o Combina 3 no menu e os atalhos de teste no Clássico e no Modo Livre (G Galaga, K Donkey, F pássaros, B chefão, C bônus, T perto do gatilho, V Honra Máxima, 1 a 0 níveis).
+- **Ligado:** todas as casas de todos os mapas abertas (sem estrelas, para ainda mostrar a conquista), todas as skins e cenários, 99.999 moedas e os atalhos de teste no Clássico e no Modo Livre (G Galaga, K Donkey, F pássaros, B chefão, C bônus, T perto do gatilho, V Honra Máxima, 1 a 0 níveis).
 - **O jogo de verdade fica intacto:** o save do jogador é gravado e guardado de lado; o perfil de apresentação vive só na memória (`save.gravavel = False`) e o ranking do clássico não é gravado. Desligar, ou simplesmente fechar o jogo, volta tudo como era. Só as configurações (música, efeitos) são as mesmas nos dois.
 - **Código:** `systems/apresentacao.py` (`ligar`, `desligar`, `alternar`, `perfil`); `ProgressStore.liberada` e `salvar_ranking` consultam `apresentacao.ligado()`; o clássico usa os atalhos se `MODO_TESTE or apresentacao.ligado()` (a física não muda: o teste de referência continua igual).
 

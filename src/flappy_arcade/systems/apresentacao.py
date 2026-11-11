@@ -6,7 +6,6 @@ Ligado, o jogo passa a usar um perfil temporário, que fica só na memória:
   * todas as casas de todos os mapas abertas (sem estrelas, para ainda dar
     para mostrar a conquista de estrelas e moedas);
   * todas as skins e todos os cenários comprados, e 99.999 moedas;
-  * o Combina 3 aberto no menu;
   * os atalhos de teste do Clássico e do Modo Livre (G, K, F, B, C, T, V e
     os números; veja config/debug.py).
 

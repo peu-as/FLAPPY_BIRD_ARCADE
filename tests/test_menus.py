@@ -48,12 +48,12 @@ def test_tela_de_modos(ctx):
                            'ARCADE (HISTÓRIA)', 'MODO LIVRE', 'CLÁSSICO']
     assert rotulos[8:] == ['EQUIPAMENTOS', 'CONFIGURAÇÕES', 'SAIR', 'LOJA']
     desligados = [b.rotulo for b in menu.grupo.botoes if not b.habilitado]
-    assert desligados == ['COMBINA 3']                                     # a próxima fase
+    assert desligados == []                                                # Fase 17: o Combina 3 abriu
     tecla(menu, pygame.K_RETURN)                                           # 1º botão: Donkey Kong
     assert isinstance(cenas.top, MapScene) and cenas.top.mapa == 'donkey'
     tecla(cenas.top, pygame.K_ESCAPE)
     assert cenas.top is menu
-    for _ in range(4):                                                     # pula o COMBINA 3 (em breve)
+    for _ in range(5):
         tecla(menu, pygame.K_DOWN)
     assert menu.grupo.botoes[menu.grupo.indice].rotulo == 'ARCADE (HISTÓRIA)'
     tecla(menu, pygame.K_RETURN)

@@ -3,12 +3,16 @@
 Peças em pixel art com as cores bem separadas (azul, verde, branco, dourado,
 marrom e vermelho). Cada peça tem uma posição na tela que persegue a casa onde
 ela está no tabuleiro: é isso que anima a troca, a queda e o embaralhamento.
+
+Casas de chefão: o chefão fica no painel de cima; os ataques voam dele até as
+casas atingidas (casulos roxos do Rei-Inseto, barris do Kong).
 """
 import math
 import random
 
 import pygame
 
+from ...config import combina3 as cfg
 from ...config.combina3 import CELULA, COLUNAS, LINHAS
 from ...config.constants import LARGURA
 from ...ui.theme import Palette
@@ -16,12 +20,16 @@ from ...ui.widgets import texto
 from ..bonus_visuals import DESENHOS, PALETA, pixel_art
 from ..coins import icone_moeda
 from ..estilingue.visual import _textura
+from .partida import BARRIL
 from .tabuleiro import ARCO, LINHA_H, LINHA_V, OVO
 
 X0 = (LARGURA - COLUNAS * CELULA) // 2
 Y0 = 178
 AREA = pygame.Rect(X0, Y0, COLUNAS * CELULA, LINHAS * CELULA)
 TAMANHO_PECA = 48
+TAMANHO_ICONE = 38                 # ícones dos objetivos no painel
+TEMPO_VOO = 0.6                    # s: ataque do chefão até as casas
+COR_CASULO, COR_CASULO_ESCURO = (178, 140, 206), (112, 78, 140)
 CORES_TIPO = {'pena': (110, 200, 255), 'folha': (110, 220, 110), 'ovo': (252, 244, 220),
               'moeda': (255, 214, 64), 'semente': (170, 110, 60), 'fruta': (232, 60, 72)}
 CORES_ARCO = [(232, 60, 72), (255, 150, 40), (255, 222, 72), (110, 220, 110), (110, 200, 255), (170, 110, 230)]
@@ -102,6 +110,9 @@ class VisualCombina3:
         self.vaivem = None               # (id_a, id_b, direção (dx, dy), idade)
         self.fundo = None
         self._caixas = {}
+        self.voos = []                   # ataques do chefão: [origem, destino, tipo, idade]
+        self.tremor_chefe = 0.0          # s: o chefão treme ao levar dano
+        self._sprites = {}
         self._painel = self._montar_painel()
 
     # ------------------------------------------------------------ preparo
@@ -196,6 +207,8 @@ class VisualCombina3:
         if self.vaivem:
             a, b, direcao, idade = self.vaivem
             self.vaivem = (a, b, direcao, idade + dt) if idade < 0.26 else None
+        self.voos = [[o, d, tipo, idade + dt] for o, d, tipo, idade in self.voos if idade + dt < TEMPO_VOO + 0.1]
+        self.tremor_chefe = max(0.0, self.tremor_chefe - dt)
 
     def parado(self):
         """Nenhuma peça em movimento e nenhum estouro em andamento."""
@@ -205,13 +218,13 @@ class VisualCombina3:
                    for i, pos in self.posicoes.items())
 
     # ------------------------------------------------------------ desenho
-    def desenhar(self, tela, tab, tempo, selecao=None, cursor=None, dica=None):
+    def desenhar(self, tela, tab, tempo, selecao=None, cursor=None, dica=None, casulos=(), barris=()):
         if self.fundo is not None:
             tela.blit(self.fundo, (0, 0))
         else:
             tela.fill(Palette.SKY_DEEP)
         tela.blit(self._painel, AREA.inflate(20, 20))
-        self._obstaculos(tela, tab)
+        self._obstaculos(tela, tab, casulos, barris)
         if selecao is not None:
             pygame.draw.rect(tela, Palette.WHITE, self._caixa_da_casa(selecao), 4, border_radius=10)
         elif cursor is not None:
@@ -246,12 +259,17 @@ class VisualCombina3:
         desvio = math.sin(min(1.0, idade / 0.26) * math.pi) * CELULA * 0.4 * (1 if ident == a else -1)
         return x + dx * desvio, y + dy * desvio
 
-    def _obstaculos(self, tela, tab):
+    def _obstaculos(self, tela, tab, casulos=(), barris=()):
         for l in range(tab.linhas):
             for c in range(tab.colunas):
                 caixa = self._caixa_da_casa((l, c)).inflate(4, 4)
                 if tab.pedra[l][c]:
                     tela.blit(self._bloco('pedra', 0), caixa)
+                elif tab.caixa[l][c] > 0 and (l, c) in casulos:
+                    tela.blit(self._casulo(), caixa)
+                elif tab.caixa[l][c] > 0 and (l, c) in barris:
+                    img = self._barril(tab.caixa[l][c] >= 2)
+                    tela.blit(img, img.get_rect(center=caixa.center))
                 elif tab.caixa[l][c] > 0:
                     tela.blit(self._bloco('madeira', 0 if tab.caixa[l][c] >= 2 else 2), caixa)
                 elif tab.gelo[l][c] > 0:
@@ -260,7 +278,133 @@ class VisualCombina3:
                                      border_radius=8)
                     pygame.draw.rect(gelo, (232, 248, 255, 230), gelo.get_rect(), 3, border_radius=8)
                     pygame.draw.line(gelo, (255, 255, 255, 200), (8, caixa.h - 12), (22, 8), 3)
+                    if tab.gelo[l][c] >= 2:                # gelo grosso: moldura dupla
+                        pygame.draw.rect(gelo, (255, 255, 255, 200), gelo.get_rect().inflate(-12, -12), 2,
+                                         border_radius=6)
                     tela.blit(gelo, caixa)
+
+    # ------------------------------------------------------------ obstáculos dos chefões
+    def _sprite(self, chave, fabrica):
+        if chave not in self._sprites:
+            self._sprites[chave] = fabrica()
+        return self._sprites[chave]
+
+    def _casulo(self):
+        def fazer():
+            lado = CELULA - 2
+            img = pygame.Surface((lado, lado), pygame.SRCALPHA)
+            corpo = pygame.Rect(6, 4, lado - 12, lado - 8)
+            pygame.draw.ellipse(img, COR_CASULO, corpo)
+            for i in range(1, 4):                      # fios da teia
+                y = corpo.y + i * corpo.h // 4
+                pygame.draw.arc(img, COR_CASULO_ESCURO, (corpo.x + 2, y - 8, corpo.w - 4, 16), math.pi, math.tau, 3)
+            pygame.draw.ellipse(img, Palette.INK, corpo, 3)
+            pygame.draw.circle(img, (255, 255, 255), (corpo.x + 16, corpo.y + 14), 4)
+            return img
+        return self._sprite('casulo', fazer)
+
+    def _barril(self, inteiro):
+        def fazer():
+            img = pygame.transform.smoothscale(self.r.barril, (CELULA - 12, CELULA - 12))
+            if not inteiro:                            # rachado: falta um golpe
+                pygame.draw.line(img, Palette.INK, (12, 10), (30, 30), 4)
+                pygame.draw.line(img, Palette.INK, (30, 30), (24, 48), 4)
+            return img
+        return self._sprite(('barril', inteiro), fazer)
+
+    # ------------------------------------------------------------ chefão
+    def sprite_chefe(self, nome, bravo, altura):
+        if nome == 'kong':
+            base = (self.r.kong_furioso if bravo else self.r.kong)['parado']
+        else:
+            base = self.r.chefe_galaga
+        largura = round(altura * base.get_width() / base.get_height())
+        return self._sprite((nome, bravo, altura), lambda: pygame.transform.smoothscale(base, (largura, altura)))
+
+    def desenhar_chefe(self, tela, nome, centro, bravo, tempo):
+        tremor = math.sin(tempo * 60) * 5 * (self.tremor_chefe / 0.3) if self.tremor_chefe else 0
+        flutua = math.sin(tempo * 3) * 3 if self.efeitos else 0
+        x, y = centro[0] + tremor, centro[1] + flutua
+        if nome == 'dupla':
+            for sub, dx, altura in (('kong', 22, 70), ('rei_inseto', -26, 48)):
+                img = self.sprite_chefe(sub, bravo, altura)
+                tela.blit(img, img.get_rect(center=(round(x + dx), round(y + (6 if sub == 'kong' else -10)))))
+        else:
+            img = self.sprite_chefe(nome, bravo, 84 if nome == 'kong' else 66)
+            tela.blit(img, img.get_rect(center=(round(x), round(y))))
+        if self.tremor_chefe:
+            clarao = pygame.Surface((110, 100), pygame.SRCALPHA)
+            pygame.draw.ellipse(clarao, (255, 255, 255, round(120 * self.tremor_chefe / 0.3)), clarao.get_rect())
+            tela.blit(clarao, clarao.get_rect(center=(round(x), round(y))))
+
+    def dano_no_chefe(self, centro, dano):
+        self.tremor_chefe = 0.3
+        self.textos.append([centro[0] + 34, centro[1] - 30, f'-{dano}', Palette.DANGER, 0.0, 30])
+
+    def ataque(self, origem, ataque):
+        for casa, tipo in ataque.casas:
+            self.voos.append([origem, centro_da_casa(*casa), tipo, 0.0])
+
+    def ao_ataque(self, removidas):
+        """As peças atingidas somem (viram casulos ou barris)."""
+        for (l, c), peca in removidas:
+            if peca is None:
+                continue
+            x, y = self.posicoes.get(peca.id, centro_da_casa(l, c))
+            self.fantasmas.append([peca, x, y, 0.0])
+            if self.efeitos:
+                for _ in range(8):
+                    ang = self.sorteio.uniform(0, math.tau)
+                    vel = self.sorteio.uniform(80, 200)
+                    self.particulas.append([x, y, vel * math.cos(ang), vel * math.sin(ang), 0.0, COR_CASULO])
+
+    def desenhar_ataques(self, tela):
+        """Por cima de tudo (o chefão está no painel, acima do tabuleiro)."""
+        for (x0, y0), (x1, y1), tipo, idade in self.voos:
+            t = min(1.0, idade / TEMPO_VOO)
+            x = x0 + (x1 - x0) * t
+            y = y0 + (y1 - y0) * t - math.sin(t * math.pi) * 120          # arco
+            if tipo == BARRIL:
+                img = pygame.transform.rotate(self._barril(True), -idade * 720) if self.efeitos else self._barril(True)
+                img = pygame.transform.smoothscale(img, (img.get_width() * 2 // 3, img.get_height() * 2 // 3))
+                tela.blit(img, img.get_rect(center=(round(x), round(y))))
+            else:
+                pygame.draw.circle(tela, COR_CASULO, (round(x), round(y)), 14)
+                pygame.draw.circle(tela, Palette.INK, (round(x), round(y)), 14, 3)
+                pygame.draw.circle(tela, (255, 255, 255), (round(x) - 4, round(y) - 5), 3)
+
+    # ------------------------------------------------------------ painel de objetivos
+    def icone_objetivo(self, objetivo):
+        tipo = objetivo[0]
+        chave = ('objetivo', tipo, objetivo[1] if tipo == cfg.COLETAR else '')
+
+        def fazer():
+            lado = TAMANHO_ICONE
+            if tipo == cfg.COLETAR:
+                base = self.icones[objetivo[1]]
+                return pygame.transform.smoothscale(base, (lado, round(lado * base.get_height() / base.get_width())))
+            if tipo == cfg.CAIXAS:
+                return pygame.transform.smoothscale(self._bloco('madeira', 0), (lado, lado))
+            img = pygame.Surface((lado, lado), pygame.SRCALPHA)
+            if tipo == cfg.GELO:
+                pygame.draw.rect(img, (176, 224, 248), img.get_rect(), border_radius=7)
+                pygame.draw.rect(img, (232, 248, 255), img.get_rect(), 3, border_radius=7)
+                pygame.draw.line(img, (255, 255, 255), (8, lado - 10), (20, 8), 3)
+            else:                                   # pontos: estrela
+                pontos = [(lado / 2 + (lado / 2 - 2) * (1 if k % 2 == 0 else 0.45) * math.cos(-math.pi / 2 + k * math.pi / 5),
+                           lado / 2 + (lado / 2 - 2) * (1 if k % 2 == 0 else 0.45) * math.sin(-math.pi / 2 + k * math.pi / 5))
+                          for k in range(10)]
+                pygame.draw.polygon(img, Palette.COIN, pontos)
+                pygame.draw.polygon(img, Palette.INK, pontos, 2)
+            return img
+        return self._sprite(chave, fazer)
+
+    @staticmethod
+    def visto(tela, centro):
+        x, y = centro
+        pygame.draw.circle(tela, Palette.WHITE, centro, 11)
+        pygame.draw.circle(tela, Palette.INK, centro, 11, 2)
+        pygame.draw.lines(tela, (40, 140, 60), False, [(x - 6, y), (x - 1, y + 5), (x + 7, y - 5)], 4)
 
     def _bloco(self, material, estagio):
         chave = (material, estagio)

@@ -6,8 +6,9 @@ import pytest
 
 from flappy_arcade.config import combina3 as cfg
 from flappy_arcade.config.constants import ALTURA, LARGURA
-from flappy_arcade.config.levels import MAPAS, ORDEM_MAPAS
-from flappy_arcade.gameplay.combina3.sessao import ESTOURO, PRONTO, TROCA, Combina3Session
+from flappy_arcade.config.levels import MAPAS, ORDEM_MAPAS, etapa_arcade
+from flappy_arcade.gameplay.combina3.partida import BARRIL, CASULO, Partida, dano_da_onda
+from flappy_arcade.gameplay.combina3.sessao import ATAQUE, ESTOURO, PRONTO, TROCA, Combina3Session
 from flappy_arcade.gameplay.combina3.tabuleiro import ARCO, LINHA_H, LINHA_V, OVO, TIPOS, Tabuleiro
 from flappy_arcade.gameplay.combina3.visual import casa_em, centro_da_casa
 
@@ -249,17 +250,162 @@ def test_jogadas_lista_so_trocas_que_combinam():
 
 
 # ---------------------------------------------------------------- casas
-def test_tabela_provisoria_das_casas():
+def test_25_casas_com_objetivos_variados():
     assert len(cfg.CASAS_COMBINA3) == 25
-    metas = [c.meta for c in cfg.CASAS_COMBINA3 if not c.chefe]
-    assert metas == sorted(metas)
     assert [n for n, c in enumerate(cfg.CASAS_COMBINA3, 1) if c.chefe] == [5, 10, 15, 20, 25]
-    assert cfg.casa_combina3(5).meta > cfg.casa_combina3(6).meta        # o chefão pede mais que a vizinha
+    tipos = {o[0] for c in cfg.CASAS_COMBINA3 for o in c.objetivos}
+    assert tipos == {cfg.PONTOS, cfg.COLETAR, cfg.GELO, cfg.CAIXAS, cfg.CHEFE}
+    assert {c.chefao.nome for c in cfg.CASAS_COMBINA3 if c.chefe} == {'rei_inseto', 'kong', 'dupla'}
+    for n, casa in enumerate(cfg.CASAS_COMBINA3, 1):
+        assert not casa.mapa or (len(casa.mapa) == 8 and all(len(x) == 7 and set(x) <= set('.#cCgG') for x in casa.mapa))
+        p = Partida(casa, semente=n)
+        assert cheio_e_calmo(p.tab) and p.tab.dica() is not None, n
+        objetivos = {o[0] for o in casa.objetivos}
+        assert (cfg.GELO in objetivos) == (p.gelo_total > 0), n            # gelo no tabuleiro só quando é objetivo
+        assert cfg.CAIXAS not in objetivos or p.caixas_total > 0, n
+        assert all(f == 0 for _, f, _ in p.progresso()), n
+    vidas = [c.chefao.vida for c in cfg.CASAS_COMBINA3 if c.chefe]
+    assert vidas == sorted(vidas)                                          # cada chefão é mais forte
+
+
+def test_textos_de_abertura():
+    assert cfg.descrever(cfg.casa_combina3(1)) == 'Faça 2.500 pontos em 20 jogadas. 3 estrelas: sobrando 6.'
+    assert cfg.descrever(cfg.casa_combina3(4)).startswith('Junte 14 folhas e 14 frutas em 20 jogadas.')
+    assert cfg.descrever(cfg.casa_combina3(11)).startswith('Quebre todas as caixas e todo o gelo em 20')
+    assert cfg.descrever(cfg.casa_combina3(25)).startswith('Derrote o Rei-Inseto e o Kong em 24 jogadas.')
 
 
 def test_estrelas_pelas_jogadas_que_sobraram():
     assert cfg.jogadas_para_estrelas(20) == (6, 3)
     assert [cfg.estrelas_combina3(20, u) for u in (10, 14, 15, 17, 18, 20)] == [3, 3, 2, 2, 1, 1]
+
+
+# ---------------------------------------------------------------- objetivos e chefões (Partida)
+def montada(casa, pecas=None):
+    """Partida com o tabuleiro sem combinação pronta (como montar), respeitando os obstáculos da casa."""
+    p = Partida(casa, semente=1)
+    tab = p.tab
+    for l in range(tab.linhas):
+        for c in range(tab.colunas):
+            tab.grade[l][c] = tab.nova_peca(FUNDO[(2 * l + c) % 3]) if tab.livre(l, c) else None
+    for (l, c), valor in (pecas or {}).items():
+        tipo, especial = valor if isinstance(valor, tuple) else (valor, '')
+        tab.grade[l][c] = tab.nova_peca(tipo, especial)
+    assert not tab._sequencias()
+    return p
+
+
+def jogar_onda(p, a, b):
+    onda = p.tab.trocar(a, b)
+    p.usar_jogada()
+    return onda, p.aplicar(onda)
+
+
+TRIO = {(4, 0): 'pena', (4, 1): 'pena', (5, 2): 'pena'}            # (5, 2) -> (4, 2) fecha o trio
+
+
+def test_coletar_conta_as_pecas_limpas():
+    p = montada(cfg.CasaCombina3(20, ((cfg.COLETAR, 'pena', 3), (cfg.COLETAR, 'folha', 2))), TRIO)
+    jogar_onda(p, (5, 2), (4, 2))
+    assert [(f, a) for _, f, a in p.progresso()] == [(3, 3), (0, 2)]
+    assert not p.cumprida() and 0.4 < p.fracao() < 0.6
+
+
+def test_gelo_e_caixas_contam_cada_camada_e_golpe():
+    mapa = ('.......',) * 4 + ('.G.C...',) + ('.......',) * 3        # gelo grosso em (4, 1), caixa em (4, 3)
+    p = montada(cfg.CasaCombina3(20, ((cfg.GELO,), (cfg.CAIXAS,)), mapa), TRIO)
+    assert p.gelo_total == 2 and p.caixas_total == 2
+    jogar_onda(p, (5, 2), (4, 2))                                   # o trio passa sobre o gelo e encosta na caixa
+    assert [(f, a) for _, f, a in p.progresso()] == [(1, 2), (1, 2)]
+
+
+def test_chefe_perde_vida_por_peca_e_por_efeito():
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('kong', 100, 5, barris=1))
+    p = montada(casa, TRIO)
+    onda, dano = jogar_onda(p, (5, 2), (4, 2))
+    assert dano == dano_da_onda(onda) == 3 and p.vida == 97
+    p = montada(casa, {(4, 0): ('pena', LINHA_H), (4, 1): 'pena', (5, 2): 'pena'})
+    onda, dano = jogar_onda(p, (5, 2), (4, 2))
+    assert dano == 7 + cfg.DANO_POR_EFEITO                           # a linha inteira + o efeito
+    pequena = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('kong', 5, 5, barris=1))
+    p = montada(pequena, {(4, 0): ('pena', LINHA_H), (4, 1): 'pena', (5, 2): 'pena'})
+    _, dano = jogar_onda(p, (5, 2), (4, 2))
+    assert dano == 5 and p.vida == 0 and p.cumprida()
+
+
+def test_chefe_ataca_a_cada_n_jogadas():
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('kong', 9999, 2, barris=2))
+    p = Partida(casa, semente=4)
+    assert p.jogadas_para_ataque() == 2
+    assert p.jogar(*p.tab.dica()) is None and p.jogadas_para_ataque() == 1
+    ataque = p.jogar(*p.tab.dica())
+    assert ataque and [tipo for _, tipo in ataque.casas] == [BARRIL, BARRIL] and not ataque.bravo
+    for (l, c), _ in ataque.casas:
+        assert p.tab.caixa[l][c] == 2 and p.tab.grade[l][c] is None and (l, c) in p.barris
+    assert p.jogadas_para_ataque() == 2 and p.tab.dica() is not None
+
+
+def test_rei_inseto_prende_em_casulos_e_bravo_ataca_mais():
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('rei_inseto', 100, 1, casulos=2))
+    p = Partida(casa, semente=2)
+    p.usar_jogada()
+    p.dano = 50                                                       # metade da vida: bravo
+    ataque = p.planejar_ataque()
+    assert ataque.bravo and [t for _, t in ataque.casas] == [CASULO] * 3
+    pecas = [p.tab.peca(casa) for casa, _ in ataque.casas]
+    assert all(pc is not None and not pc.especial for pc in pecas)
+    removidas = p.aplicar_ataque(ataque)
+    assert [pc for _, pc in removidas] == pecas
+    assert all(p.tab.caixa[l][c] == 1 and (l, c) in p.casulos for (l, c), _ in ataque.casas)
+
+
+def test_chefe_nao_ataca_quando_acabou_ou_tabuleiro_cheio_de_caixas():
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('kong', 100, 1, barris=2))
+    p = Partida(casa, semente=3)
+    p.usar_jogada()
+    p.dano = 100
+    assert p.planejar_ataque() is None                                # vitória: sem ataque
+    p = Partida(casa, semente=3)
+    p.usar_jogada()
+    p.jogadas = 0
+    assert p.planejar_ataque() is None                                # acabou: sem ataque
+    p = Partida(casa, semente=3)
+    p.usar_jogada()
+    for c in range(7):
+        for l in (0, 1):
+            p.tab.caixa[l][c] = 1
+            p.tab.grade[l][c] = None
+    assert p.planejar_ataque() is None                                # já há 14 caixas (máx. 12)
+
+
+def test_quebrar_casulo_tira_da_lista():
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('rei_inseto', 999, 1, casulos=1))
+    p = montada(casa, TRIO)
+    p.tab.grade[4][3] = None
+    p.tab.caixa[4][3] = 1
+    p.casulos.add((4, 3))
+    onda, _ = jogar_onda(p, (5, 2), (4, 2))
+    assert (4, 3) in onda.caixas and (4, 3) not in p.casulos and p.tab.livre(4, 3)
+
+
+def test_robo_e_jogo_usam_as_mesmas_regras():
+    """A Partida faz a jogada inteira como a sessão faz por etapas."""
+    p1, p2 = Partida(cfg.casa_combina3(10), semente=9), Partida(cfg.casa_combina3(10), semente=9)
+    for _ in range(8):
+        jogada = p1.tab.dica()
+        p1.jogar(*jogada)
+        onda = p2.tab.trocar(*jogada)
+        p2.usar_jogada()
+        while onda:
+            p2.aplicar(onda)
+            p2.tab.cair()
+            onda = p2.tab.proxima_onda()
+        ataque = p2.planejar_ataque()
+        if ataque:
+            p2.aplicar_ataque(ataque)
+        elif p2.tab.dica() is None:
+            p2.tab.embaralhar()
+    assert ids(p1.tab) == ids(p2.tab) and p1.dano == p2.dano and p1.barris == p2.barris
 
 
 # ---------------------------------------------------------------- sessão
@@ -288,7 +434,7 @@ def _clique(s, tipo, pos):
 def test_sessao_cumpre_o_contrato_da_casa(recursos):
     s = _sessao(recursos, 5)
     assert s.chefe and s.resultado is None and s.estrelas == 0 and s.moedas_coletadas == 0
-    assert s.estado == 'JOGO' and not s.pausado and '20 jogadas' in s.objetivo
+    assert s.estado == 'JOGO' and not s.pausado and s.objetivo.startswith('Derrote o Rei-Inseto em 22 jogadas')
     s.desenhar()
     assert s.tela.get_size() == (LARGURA, ALTURA)
     assert casa_em(centro_da_casa(3, 4)) == (3, 4) and casa_em((5, 5)) is None
@@ -350,7 +496,7 @@ def test_bater_a_meta_da_vitoria_estrelas_e_moedas(recursos):
         _ate_pronto(s)
     assert s.resultado in ('VITORIA', 'DERROTA')
     if s.resultado == 'VITORIA':
-        assert s.pontos >= s.definicao.meta
+        assert s.partida.cumprida()
         assert s.estrelas == cfg.estrelas_combina3(20, s.usadas)
         assert s.moedas_coletadas >= cfg.MOEDAS_POR_VITORIA
     else:
@@ -358,14 +504,14 @@ def test_bater_a_meta_da_vitoria_estrelas_e_moedas(recursos):
 
 
 def test_vitoria_e_derrota_garantidas(recursos, monkeypatch):
-    facil = cfg.CasaCombina3(20, 60)
+    facil = cfg.CasaCombina3(20, ((cfg.PONTOS, 60),))
     monkeypatch.setattr(cfg, 'casa_combina3', lambda n: facil)
     s = _sessao(recursos)
     s.acao_principal()
     _ate_pronto(s)
     assert s.resultado == 'VITORIA' and s.estrelas == 3 and s.usadas == 1
     assert s.moedas_coletadas >= cfg.MOEDAS_POR_VITORIA + 19 // cfg.JOGADAS_POR_MOEDA
-    impossivel = cfg.CasaCombina3(2, 10 ** 9)
+    impossivel = cfg.CasaCombina3(2, ((cfg.PONTOS, 10 ** 9),))
     monkeypatch.setattr(cfg, 'casa_combina3', lambda n: impossivel)
     s = _sessao(recursos)
     for _ in range(2):
@@ -392,9 +538,9 @@ def test_dica_aparece_depois_de_parado(recursos):
 def test_partida_inteira_desenha(recursos, efeitos):
     s = _sessao(recursos, 25, semente=7)
     s.preparar_recompensas(efeitos=efeitos)
-    s.tab.grade[0][0].especial = LINHA_H
-    s.tab.grade[0][1].especial = OVO
-    s.tab.grade[0][2].especial, s.tab.grade[0][2].tipo = ARCO, ''
+    s.tab.grade[1][0].especial = LINHA_H                 # (a casa 25 tem pedras nos cantos)
+    s.tab.grade[1][1].especial = OVO
+    s.tab.grade[1][2].especial, s.tab.grade[1][2].tipo = ARCO, ''
     for _ in range(900):
         if s.resultado:
             break
@@ -405,9 +551,38 @@ def test_partida_inteira_desenha(recursos, efeitos):
     assert s.resultado
 
 
+def test_casa_de_chefe_anima_o_ataque(recursos, monkeypatch):
+    casa = cfg.CasaCombina3(20, ((cfg.CHEFE,),), chefao=cfg.chefe('dupla', 9999, 1, casulos=1, barris=1))
+    monkeypatch.setattr(cfg, 'casa_combina3', lambda n: casa)
+    s = _sessao(recursos, 25)
+    assert s.acao_principal()
+    for _ in range(300):
+        s.atualizar()
+        s.desenhar()
+        if s.etapa == ATAQUE:
+            break
+    assert s.etapa == ATAQUE and len(s.visual.voos) == 2 and 'ATACARAM' in s.aviso[0]
+    assert not s.partida.casulos and not s.partida.barris               # ainda voando
+    _ate_pronto(s)
+    assert len(s.partida.casulos) == 1 and len(s.partida.barris) == 1 and s.partida.dano > 0
+    s.desenhar()
+
+
+@pytest.mark.parametrize('casa', [1, 2, 4, 5, 6, 11, 13, 14, 20, 25])
+def test_painel_de_cada_tipo_de_casa_desenha(recursos, casa):
+    s = _sessao(recursos, casa)
+    for _ in range(3):
+        s.acao_principal()
+        _ate_pronto(s)
+        s.desenhar()
+    assert s.usadas == 3 or s.resultado
+    assert len(s.partida.progresso()) == len(cfg.casa_combina3(casa).objetivos)
+
+
 # ---------------------------------------------------------------- integração
-def test_mapa_registrado_mas_fora_do_menu_ate_a_fase_17():
-    assert 'combina3' in MAPAS and 'combina3' not in ORDEM_MAPAS
+def test_mapa_no_menu_mas_fora_do_arcade():
+    assert 'combina3' in MAPAS and ORDEM_MAPAS[-1] == 'combina3'
+    assert all(etapa_arcade(n).estilo != 'combina3' for n in range(1, 26))
 
 
 def test_casa_abre_pela_cena_de_casa(monkeypatch, tmp_path):
@@ -415,7 +590,7 @@ def test_casa_abre_pela_cena_de_casa(monkeypatch, tmp_path):
     from flappy_arcade.scenes.level_scene import LevelScene
     from flappy_arcade.scenes.map_scene import MapScene
     monkeypatch.setattr(modulo_app, 'ARQUIVO_SAVE', tmp_path / 'save.json')
-    facil = cfg.CasaCombina3(20, 60)
+    facil = cfg.CasaCombina3(20, ((cfg.PONTOS, 60),))
     monkeypatch.setattr(cfg, 'casa_combina3', lambda n: facil)
     ctx = modulo_app.App().ctx
     mapa = MapScene(ctx, 'combina3')

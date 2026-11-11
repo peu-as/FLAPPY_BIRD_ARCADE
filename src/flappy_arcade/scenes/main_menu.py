@@ -104,16 +104,10 @@ class MainMenuScene(Scene):
         def estrelas(mapa):
             return f'{progresso.total(mapa)}/{progresso.maximo()}'
 
-        for i, mapa in enumerate(ORDEM_MAPAS):          # Donkey, Galaga, Flappy, Estilingue
+        for i, mapa in enumerate(ORDEM_MAPAS):          # Donkey, Galaga, Flappy, Estilingue, Combina 3
             modo(i, MAPAS[mapa].subtitulo.upper(), lambda m=mapa: self._abrir(MapScene(self.ctx, m)),
                  mapa, estrelas(mapa), estrela=True)
-        n = len(ORDEM_MAPAS)
-        if apresentacao.ligado():                        # o mapa já existe; o botão abre de vez na Fase 17
-            modo(n, 'COMBINA 3', lambda: self._abrir(MapScene(self.ctx, 'combina3')), 'combina3',
-                 estrelas('combina3'), estrela=True)
-        else:
-            modo(n, 'COMBINA 3', None, 'combina3', 'em breve')    # a próxima fase (match-3)
-            botoes[-1].habilitado = False
+        n = len(ORDEM_MAPAS) - 1
         modo(n + 1, 'ARCADE (HISTÓRIA)', lambda: self._abrir(MapScene(self.ctx, 'arcade')), 'arcade',
              estrelas('arcade'), estilo='destaque', estrela=True)
         modo(n + 2, 'MODO LIVRE', lambda: self._abrir(GameScene(self.ctx, 'livre')), 'livre', 'treino')

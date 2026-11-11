@@ -242,3 +242,42 @@ Leitura: quem joga com atenção passa quase sempre até a casa 14 e sente o ape
 ## Moedas
 
 1 por peça especial criada, 1 a cada 2 jogadas que sobram e 4 pela vitória, mais o bônus de estrelas que todo mapa dá. A conta fina da economia dos dois modos novos fica para a Fase 18.
+
+---
+
+# Fase 17 — mapa do Combina 3 (objetivos e chefões)
+
+As metas de pontos da Fase 16 deram lugar a 25 casas com objetivos variados: 4 de pontos, 6 de coletar, 7 de gelo/caixas (algumas com os dois) e 5 chefões. A curva foi medida com `python tools/playtest_combina3.py --casas --partidas 40`, com o robô mirando no objetivo da casa (e não só nos pontos).
+
+## Chefões
+
+Medido: o jogador médio tira cerca de **8,7 de vida por jogada** (o bom, ~10,8), já contando os ataques que tampam casas. A vida de cada chefão foi posta perto de "jogadas × 8,7", subindo devagar:
+
+| Casa | Chefão | Vida | Ataca a cada | Ataque |
+|---|---|---|---|---|
+| 5 | Rei-Inseto | 160 | 4 jogadas | 2 casulos |
+| 10 | Kong | 165 | 4 jogadas | 2 barris |
+| 15 | Rei-Inseto | 180 | 3 jogadas | 3 casulos |
+| 20 | Kong | 190 | 3 jogadas | 2 barris |
+| 25 | os dois | 235 | 3 jogadas | 2 casulos + 1 barril |
+
+Bravo (metade da vida): uma casa a mais por ataque.
+
+## Curva (40 partidas por casa)
+
+| Casas | Médio: vitórias / estrelas | Bom: vitórias / estrelas | Leitura |
+|---|---|---|---|
+| 1–4 | 85–100% / 2,6–2,9 | 92–100% / 2,9–3,0 | aprender: pontos, coletar, gelo |
+| 5 (chefe) | 82% / 1,8 | 92% / 2,5 | primeiro chefão |
+| 6–9 | 70–100% / 2,0–2,9 | 77–97% / 2,3–2,9 | caixas, pedras, gelo grosso |
+| 10 (chefe) | 72% / 1,7 | 92% / 2,2 | Kong e os barris |
+| 11–14 | 60–87% / 2,1–2,8 | 85–95% / 2,5–2,9 | misturas |
+| 15 (chefe) | 60% / 1,7 | 90% / 2,1 | |
+| 16–19 | 50–80% / 2,1–2,6 | 72–95% / 2,4–2,7 | |
+| 20 (chefe) | 55% / 1,4 | 85% / 2,0 | |
+| 21–24 | 47–60% / 2,0–2,6 | 77–95% / 2,2–2,7 | reta final |
+| 25 (chefe) | 35% / 1,4 | 57% / 1,8 | os dois chefões |
+
+Ajustes feitos a partir das medições: chefões com vida bem menor (a primeira tabela tinha 230–520: 0–20% de vitória); a casa 3 trocou o gelo do fundo pelo do meio (no fundo, só 33%); gelo grosso afinado nas casas 8, 14, 17, 22 e 24 (o último pedacinho de gelo num canto custa muitas jogadas); coletas um pouco menores nas casas 9, 18 e 22; casas 16 e 23 com mais caixas (estavam fáceis).
+
+**Para o seu teste de jogo:** o robô "bom" enxerga as peças que vão cair (ele testa a jogada numa cópia do tabuleiro), então joga melhor que uma pessoa atenta; o "médio" é a melhor referência. Se uma casa de gelo parecer injusta, troque `G` por `g` no desenho do tabuleiro; se um chefão parecer forte, baixe a `vida` ou aumente `a_cada` em `CASAS_COMBINA3`.

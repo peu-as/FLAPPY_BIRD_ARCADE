@@ -118,19 +118,19 @@ def test_atalho_no_menu_liga_mostra_e_desliga(app):
     ctx.scenes.push(menu)
     tela = pygame.Surface((575, 860))
 
-    def combina3():
-        return next(b for b in menu.grupo.botoes if b.rotulo == 'COMBINA 3')
-    assert not combina3().habilitado
+    def donkey():
+        return next(b for b in menu.grupo.botoes if b.rotulo == 'DONKEY KONG')
     menu.handle_event(atalho())
-    assert apresentacao.ligado() and combina3().habilitado and 'TUDO LIBERADO' in menu.aviso[0]
+    assert apresentacao.ligado() and 'TUDO LIBERADO' in menu.aviso[0]
     for _ in range(20):
         menu.update(1 / 60)
         menu.draw(tela)
-    combina3().acao()
-    assert ctx.scenes.top.mapa == 'combina3'
+    donkey().acao()
+    assert ctx.scenes.top.mapa == 'donkey' and ctx.progress.liberada('donkey', 25)
     ctx.scenes.pop()
     menu.handle_event(atalho())
-    assert not apresentacao.ligado() and not combina3().habilitado and 'SEU JOGO' in menu.aviso[0]
+    assert not apresentacao.ligado() and 'SEU JOGO' in menu.aviso[0]
+    assert not ctx.progress.liberada('donkey', 2)
     menu.handle_event(atalho(shift=False))                         # Ctrl + A sozinho não faz nada
     assert not apresentacao.ligado()
 
