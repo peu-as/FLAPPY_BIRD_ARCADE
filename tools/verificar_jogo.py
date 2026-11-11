@@ -140,7 +140,8 @@ def telas():
     def _():
         rodar(MainMenuScene(ctx), 90, 1 / 60, nome='menu')
 
-    for mapa in (*ORDEM_MAPAS, 'arcade'):
+    # o Combina 3 entra no menu na Fase 17; até lá é conferido aqui pelo nome
+    for mapa in dict.fromkeys((*ORDEM_MAPAS, 'combina3', 'arcade')):
         @checar('telas', f'mapa {mapa}')
         def _(mapa=mapa):
             rodar(MapScene(ctx, mapa), 40, 1 / 60, nome=f'mapa {mapa}')

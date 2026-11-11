@@ -191,3 +191,54 @@ Ajustes feitos a partir das medições: a casa 2 trocou uma estrutura de madeira
 ## Desempenho
 
 A física é leve: 0,02–0,09 ms por quadro nas casas mais cheias. O executável (com a pymunk dentro) tem ~30 MB e abre as casas do Estilingue.
+
+---
+
+# Fase 16 — modo Combina 3 (o jogo)
+
+Nesta fase as 25 casas pedem só **pontos em 20 jogadas** (tabela provisória para o jogo já ser jogável). A Fase 17 troca a tabela por objetivos variados (coletar peças, quebrar gelo e caixas, chefões com vida) e liga o botão do menu.
+
+## Como foi medido
+
+`tools/playtest_combina3.py` joga partidas inteiras só com as regras (sem tela), com três jogadores:
+
+- **Aleatório:** escolhe qualquer troca válida (quem só segue a dica).
+- **Médio:** na metade das jogadas escolhe a troca que mais pontua; na outra metade, qualquer uma.
+- **Bom:** escolhe a melhor troca 9 em cada 10 vezes.
+
+Pontos em 30 jogadas, 6 tipos de peça, 200 partidas por jogador:
+
+| Jogador | 10% piores | Mediana | 10% melhores | Por jogada |
+|---|---|---|---|---|
+| Aleatório | 3.380 | 4.920 | 7.320 | 175 |
+| Médio | 6.320 | 9.270 | 14.310 | 329 |
+| Bom | 9.620 | 13.170 | 18.890 | 463 |
+
+Decisão tirada daqui: **6 tipos de peça em todas as casas**. Com 5 tipos as cascatas mais que dobram os pontos e o resultado vira sorte; a dificuldade sobe pela meta (e, na Fase 17, pelos obstáculos), não pelo número de tipos.
+
+## Metas
+
+`meta = 20 jogadas x (150 + 7 por casa)`, arredondada para a centena; as casas 5, 10, 15, 20 e 25 pedem 15% a mais. Vai de 3.000 (casa 1) a 7.300 (casa 25). Estrelas: 3 sobrando 6 jogadas ou mais, 2 sobrando 3 ou mais, 1 se bater a meta no fim.
+
+## Curva (120 partidas por casa)
+
+| Casas | Meta | Médio: vitórias / estrelas | Bom: vitórias / estrelas |
+|---|---|---|---|
+| 1–4 | 3.000–3.400 | 95–98% / 2,7–2,9 | 100% / 2,9–3,0 |
+| 5 (chefe) | 4.100 | 88% / 2,6 | 96% / 2,8 |
+| 6–9 | 3.700–4.100 | 89–94% / 2,5–2,7 | 98–99% / 2,8–2,9 |
+| 10 (chefe) | 4.900 | 77% / 2,3 | 93% / 2,6 |
+| 11–14 | 4.400–4.800 | 75–86% / 2,2–2,4 | 95–96% / 2,7–2,8 |
+| 15 (chefe) | 5.700 | 60% / 2,2 | 89% / 2,5 |
+| 16–19 | 5.100–5.500 | 63–73% / 2,1–2,4 | 88–95% / 2,5–2,7 |
+| 20 (chefe) | 6.500 | 40% / 2,0 | 79% / 2,3 |
+| 21–24 | 5.800–6.200 | 46–59% / 2,0–2,3 | 85–87% / 2,3–2,5 |
+| 25 (chefe) | 7.300 | 36% / 2,0 | 65% / 2,5 |
+
+Leitura: quem joga com atenção passa quase sempre até a casa 14 e sente o aperto nos chefões 20 e 25; quem só troca o que aparece empaca por volta da casa 15. É a mesma forma de curva dos outros mapas.
+
+**Para o seu teste de jogo:** uma pessoa tende a jogar melhor que o "médio" quando aprende a montar Pena-Raio e Ovo Nova de propósito. Se as casas finais parecerem fáceis ou injustas, mude `PONTOS_POR_JOGADA_A_MAIS` ou `EXTRA_CHEFE` em `config/combina3.py` e rode `python tools/playtest_combina3.py --casas` (uns 5 minutos com as 40 partidas padrão; `--partidas 120` para mais precisão).
+
+## Moedas
+
+1 por peça especial criada, 1 a cada 2 jogadas que sobram e 4 pela vitória, mais o bônus de estrelas que todo mapa dá. A conta fina da economia dos dois modos novos fica para a Fase 18.

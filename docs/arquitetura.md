@@ -22,6 +22,7 @@ src/
       economy.py             regras das moedas (onde aparecem, quanto valem, bônus)
       skins.py               catálogo de skins: categorias, raridade, preço, cores, efeitos
       estilingue.py          modo Estilingue: materiais, pássaros, física e as 25 casas
+      combina3.py            modo Combina 3: tabuleiro, jogadas, metas das 25 casas, estrelas
       scenarios.py           catálogo de cenários: preço, período (dia/tarde/noite), arquivo
       debug.py               atalhos de teste (FLAPPY_DEBUG=1)
     systems/                 serviços persistentes
@@ -50,6 +51,10 @@ src/
         mundo.py             peças, dano por impulso, explosões, habilidades (sem desenho)
         visual.py            texturas, personagens, estilingue, mira, efeitos
         sessao.py            uma casa: mira, voo, câmera, pontos, moedas, estrelas
+      combina3/              modo Combina 3 (regras puras + desenho + sessão)
+        tabuleiro.py         regras: trocas, combinações, especiais, cascatas, gelo/caixa/pedra (sem pygame)
+        visual.py            peças, animações de troca/queda, raios, explosões, textos
+        sessao.py            uma casa: mouse/teclado, jogadas, meta, dica, moedas, estrelas
       difficulty.py          tabelas originais (10 níveis) + justiça das passagens
       difficulty_curve.py    motor da curva de 25 níveis (lê os perfis)
       geometry.py, procedural.py, resources.py
@@ -83,6 +88,7 @@ tests/
   test_shop_equipment.py     loja com abas e filtros, compras de cenário, prévias, Equipamentos
   test_balanceamento.py      chefões do Flappy um degrau acima, economia da Fase 14
   test_estilingue.py         Estilingue: casas estáveis, materiais, barris, habilidades, sessão
+  test_combina3.py           Combina 3: cada regra com tabuleiro montado à mão, cascatas, obstáculos, sessão
   test_bonus_visuals.py      bônus novos: nomes, itens, mesma física, clássico com cápsulas
   test_scenery.py            cenários nas fases (Flappy, Galaga, Donkey): memória, trocas, transição,
                              contraste nos 31 cenários, física idêntica
@@ -92,6 +98,7 @@ tools/
   importar_artes.py          folhas de arte (artes/) -> assets/skins e assets/cenarios, com relatório
   verificar_jogo.py          verificação final antes do commit (todas as telas + testes)
   playtest_estilingue.py     robô do Estilingue: casa possível? e, com --humano, a dificuldade
+  playtest_combina3.py       robô do Combina 3: pontos por partida e, com --casas, vitórias por casa
   previa_artes.py            prévia para conferir tudo que foi importado (--previa X.png)
 assets/
   imgs/, audio/              artes e sons do jogo original
@@ -179,6 +186,27 @@ Inspirado nos jogos de arremesso com física. Os insetos da Esquadrilha Galaga (
 - **Controles:** arrastar para trás e soltar (mouse) ou setas + ESPAÇO; no ar, clique/ESPAÇO usa a habilidade; roda do mouse ou A/D olham a fortaleza.
 - **Visual:** o fundo é o cenário que o jogador equipou (com paralaxe); câmera sobrevoa a fortaleza no começo e segue o pássaro.
 - **Para mudar uma casa:** edite `CASAS_ESTILINGUE` em `config/estilingue.py` (módulos `torre`, `casinha`, `piramide`, `muro`, `fortaleza`, `barril`) e rode `python tools/playtest_estilingue.py --casas N` (o robô diz se dá para vencer) e `--humano 8` (a dificuldade com erro de mira humano). Os testes conferem que toda fortaleza fica de pé sozinha.
+
+## Modo Combina 3
+
+Jogo de combinar três com as peças do nosso universo: **pena, folha, ovo, moeda, semente e fruta** (os mesmos desenhos em pixel art dos bônus). Tabuleiro de 8 linhas por 7 colunas; trocar duas peças vizinhas só vale se formar uma sequência de 3 ou mais. É um mapa de 25 casas como os outros (`Combina3Session` cumpre o contrato da `LevelScene`).
+
+- **Regras separadas do desenho:** `tabuleiro.py` não conhece o pygame. Cada passo de uma jogada é uma `Onda` (o que some, o que nasce, quais efeitos, quantos pontos); a sessão toca uma onda por vez com animação: `trocar` → `aplicar` → `cair` → `proxima_onda`, até acabar a cascata. O robô e os testes usam `jogar(a, b)`, que resolve tudo de uma vez. Cada tabuleiro tem o próprio sorteador (`semente`); nada usa o `random` do jogo.
+- **Peças especiais** (com os nomes dos bônus):
+
+| Como fazer | Nasce | Ao ser combinada |
+|---|---|---|
+| 4 em linha | **Pena-Raio** (setas) | limpa a linha ou a coluna inteira |
+| L ou T (5 peças) | **Ovo Nova** (anel pulsando) | explode as 8 casas em volta (3x3) |
+| 5 em linha | **Arco-íris** (esfera girando) | trocada com uma peça, limpa todas daquele tipo |
+
+- **Combos** (trocar duas especiais entre si): Pena-Raio + Pena-Raio = cruz; Ovo + Ovo = 5x5; Pena-Raio + Ovo = 3 linhas e 3 colunas; Arco-íris + especial = todas as peças daquele tipo viram a especial e disparam; Arco-íris + Arco-íris = o tabuleiro inteiro. Especial atingida por outra dispara em cadeia.
+- **Pontos:** 20 por peça, 60/120/200 ao criar Pena-Raio/Ovo Nova/Arco-íris; cada onda seguinte da mesma jogada multiplica (x2, x3...).
+- **Obstáculos (prontos no motor, entram nas casas na Fase 17):** **gelo** (camadas sobre a peça; perde uma quando a peça é limpa), **caixa** (ocupa a casa; quebra com limpeza ao lado ou efeito por cima) e **pedra** (fixa). As peças caem por trechos da coluna: param em cima de caixa e pedra, e peças novas entram no topo de cada trecho.
+- **Sem jogadas?** O tabuleiro embaralha as mesmas peças até existir uma troca válida. Parado por 5 s, o jogo mostra uma dica.
+- **Controles:** clicar em duas vizinhas ou arrastar (mouse); setas movem o cursor, ESPAÇO segura a peça e a seta seguinte troca.
+- **Casa (Fase 16):** bater a meta de pontos em 20 jogadas; troca que não combina não gasta jogada. Estrelas pelas jogadas que sobram (3 com 6 ou mais, 2 com 3 ou mais). Moedas: 1 por especial criada, 1 a cada 2 jogadas que sobram, 4 pela vitória.
+- **Para mudar:** números em `config/combina3.py`; confira com `python tools/playtest_combina3.py --casas`. Para abrir direto: `python src/main.py --casa combina3 1` (o botão do menu é ligado na Fase 17, junto com o mapa de objetivos variados).
 
 ## Bônus com cara nova (modos novos)
 

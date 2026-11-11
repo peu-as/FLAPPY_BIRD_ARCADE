@@ -67,6 +67,8 @@ MAPAS = {
     'flappy': Mapa('flappy', 'CÉUS DO FLAPPY', 'Flappy clássico', (80, 160, 40)),
     'arcade': Mapa('arcade', 'A GRANDE JORNADA', 'Arcade (história)', (200, 84, 200)),
     'estilingue': Mapa('estilingue', 'TORRES DO ESTILINGUE', 'Estilingue', (206, 96, 48)),
+    # Fase 16: já dá para jogar (python src/main.py --casa combina3 1); entra no menu na Fase 17
+    'combina3': Mapa('combina3', 'TRILHA DO COMBINA 3', 'Combina 3', (232, 60, 120)),
 }
 ORDEM_MAPAS = ('donkey', 'galaga', 'flappy', 'estilingue')     # mapas de um estilo só
 
