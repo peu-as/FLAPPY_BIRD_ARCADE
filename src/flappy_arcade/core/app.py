@@ -53,7 +53,7 @@ class App:
         pygame.init()
         self.window = Window(TITULO)
         recursos = Recursos()           # precisa da janela criada (convert_alpha)
-        self.window.set_icon(recursos.passaros['dia'][0])
+        self.window.set_icon(recursos.icone_janela())
         bus = EventBus()
         save = SaveManager(ARQUIVO_SAVE)
         save.load()

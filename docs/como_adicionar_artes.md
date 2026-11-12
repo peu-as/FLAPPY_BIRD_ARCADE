@@ -98,13 +98,38 @@ Abre todas as telas sem janela (menu, mapas, casas, Modo Livre com Galaga e Donk
 
 ---
 
+## Personagem com poses (skin lendária)
+
+A Wilson Luciano não é uma arte só: é uma folha com várias poses (`artes/wilson_luciano.png`). Para trocar a arte ou criar outro personagem:
+
+1. Salve a folha em `artes/` com fundo de cor lisa (o importador tira o ciano e a sombra embaixo dos pés).
+2. Em `tools/importar_personagem.py`, ajuste `FOLHA`, `SAIDA` e as caixas `CAIXAS` (x0, y0, x1, y1 de cada pose, acima da etiqueta com o nome). São obrigatórias as poses `idle`, `correr`, `pular`, `desviar`, `morrer` e `retrato`.
+3. Rode:
+
+```powershell
+python tools/importar_personagem.py --previa previa_personagem.png
+```
+
+4. Em `config/skins.py`, crie a skin com `tipo='personagem'`, `sprite='<pasta>'` e `efeito='lendario'` (como a `WILSON`).
+5. Rode os testes (`tests/test_lendaria.py`) e a verificação final.
+
+## Ícone do executável
+
+O ícone sai da capa (`artes/capa.png`). Para trocar, substitua a capa (vertical, 1024 x 1536) e rode `python tools/gerar_icone.py --previa previa_icone.png`; se o desenho mudar de lugar, ajuste `RECORTE_LOGO` e `RECORTE_PASSARO`. Depois, gere o executável de novo com o comando do README (`--icon "assets/icone/flappy_arcade.ico"`).
+
+---
+
 ## Onde cada coisa fica
 
 ```
 artes/                       folhas originais (não vão no executável)
 tools/importar_artes.py      tabelas de nomes + importador
 tools/previa_artes.py        prévia de conferência
+tools/importar_personagem.py poses do personagem lendário
+tools/gerar_icone.py         ícone do .exe e da janela, a partir da capa
 assets/skins/, assets/cenarios/   o que o jogo carrega
+assets/personagens/, assets/icone/  poses da lendária e o ícone
+gameplay/lendaria.py         poses e efeitos dourados da lendária
 config/skins.py, config/scenarios.py   catálogo, preços, efeitos, períodos
 gameplay/scenery.py          como o cenário vira fundo (Flappy, Galaga, Donkey)
 ```

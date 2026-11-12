@@ -4,24 +4,29 @@ Tipos de skin:
   'paleta'    o pássaro original com as cores trocadas (mantém a animação das asas);
   'especial'  um dos sprites temáticos de assets/imgs (sem animação de asas);
   'arte'      uma das artes importadas para assets/skins (tools/importar_artes.py);
+  'personagem' um personagem com várias poses em assets/personagens/<sprite>/
+              (tools/importar_personagem.py): a pose muda com o voo (pulo, planar,
+              mergulho, no chão) e o retrato aparece nos cartões e no Estilingue;
   efeitos     'brilho', 'fantasma', 'neon', 'arco_iris' (pássaro e rastro mudam de
-              cor), 'rastro_arco_iris' (só o rastro) ou 'poeira' (animados; somem
-              quando os efeitos visuais estão desligados).
+              cor), 'rastro_arco_iris' (só o rastro), 'poeira' ou 'lendario' (aura,
+              rastro dourado, faíscas, explosão ao bater asas e reflexo; animados,
+              somem quando os efeitos visuais estão desligados).
 
-Categorias: Clássicas (as 18 primeiras), Fantasias (35 artes) e Times (32 artes).
-Faixas de preço: comuns 50 a 200, raras 250 a 500, radicais 1000 ou mais.
+Categorias: Clássicas (as 18 primeiras), Fantasias (35 artes + a lendária) e Times (32 artes).
+Faixas de preço: comuns 50 a 200, raras 250 a 500, radicais 1000 a 2500, lendárias 5000 ou mais.
 Times custam 200; fantasias simples 120; detalhadas 350 a 500; radicais com efeito.
+A lendária (Wilson Luciano) é a mais cara do jogo: 5000 moedas.
 """
 from dataclasses import dataclass, field
 
-COMUM, RARA, RADICAL = 'comum', 'rara', 'radical'
-NOMES_RARIDADE = {COMUM: 'COMUM', RARA: 'RARA', RADICAL: 'RADICAL'}
-CORES_RARIDADE = {COMUM: (120, 168, 72), RARA: (72, 120, 220), RADICAL: (200, 84, 200)}
+COMUM, RARA, RADICAL, LENDARIA = 'comum', 'rara', 'radical', 'lendaria'
+NOMES_RARIDADE = {COMUM: 'COMUM', RARA: 'RARA', RADICAL: 'RADICAL', LENDARIA: 'LENDÁRIA'}
+CORES_RARIDADE = {COMUM: (120, 168, 72), RARA: (72, 120, 220), RADICAL: (200, 84, 200), LENDARIA: (226, 160, 24)}
 
 CLASSICAS, FANTASIAS, TIMES = 'classicas', 'fantasias', 'times'
 CATEGORIAS = (CLASSICAS, FANTASIAS, TIMES)
 NOMES_CATEGORIA = {CLASSICAS: 'CLÁSSICAS', FANTASIAS: 'FANTASIAS', TIMES: 'TIMES'}
-FAIXAS_PRECO = {COMUM: (50, 200), RARA: (250, 500), RADICAL: (1000, 10_000)}
+FAIXAS_PRECO = {COMUM: (50, 200), RARA: (250, 500), RADICAL: (1000, 2500), LENDARIA: (5000, 20_000)}
 
 # Cores do pássaro original que a troca de paleta substitui.
 CORPO, CORPO_SOMBRA, BARRIGA, BICO = 'corpo', 'corpo_sombra', 'barriga', 'bico'
@@ -39,7 +44,7 @@ class Skin:
     nome: str
     raridade: str
     preco: int
-    tipo: str = 'paleta'
+    tipo: str = 'paleta'          # 'paleta' | 'especial' | 'arte' | 'personagem'
     cores: dict = field(default_factory=dict)    # paleta: papel -> cor nova
     sprite: str = ''                             # especial: nome do PNG; arte: id do arquivo
     efeito: str = ''
@@ -82,7 +87,13 @@ SKINS = (
     Skin('arco_iris', 'Arco-íris', RADICAL, 2500, efeito='arco_iris'),
 )
 
+# Lendária: personagem com poses e o efeito mais caprichado do jogo (a mais cara da loja).
+PRECO_LENDARIA = 5000
+WILSON = Skin('wilson', 'Wilson Luciano', LENDARIA, PRECO_LENDARIA, tipo='personagem', sprite='wilson',
+              efeito='lendario', categoria=FANTASIAS)
+
 FANTASIAS_SKINS = (
+    WILSON,                       # primeira da aba Fantasias: a vitrine da loja
     # simples: um acessório ou uma cor
     *(_fantasia(i, n, COMUM, PRECO_FANTASIA_SIMPLES) for i, n in (
         ('gato', 'Gato'), ('cachorro', 'Cachorro'), ('sapo', 'Sapo'), ('panda', 'Panda'),

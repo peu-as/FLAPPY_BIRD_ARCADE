@@ -193,6 +193,30 @@ def telas():
                 cena._selecionar((cena.indice + 1) % len(cena.itens))
         rodar(ShopScene(ctx), 160, 1 / 60, navegar, 'loja')
 
+    @checar('telas', 'skin lendária (Wilson Luciano) nas fases e no Modo Livre')
+    def _():
+        anterior = ctx.shop.equipada
+        ctx.shop.comprar('wilson')
+        ctx.shop.equipar('wilson')
+        try:
+            for mapa in ('flappy', 'donkey', 'estilingue'):
+                def jogar(cena, i):
+                    if i == 0:
+                        cena.handle_event(espaco)
+                    elif i % 9 == 0:
+                        cena.session.acao_principal()
+                rodar(LevelScene(ctx, mapa, 1), 150, 1 / 30, jogar, f'lendária {mapa}')
+
+            def livre(cena, i):
+                s = cena.session
+                if s.estado == 'MENU' or (s.estado in ('JOGO', 'DONKEY') and s.passaro.y > 420 and i % 2):
+                    s.acao_principal()
+                if i == 40:
+                    s.iniciar_alerta('DONKEY')
+            rodar(GameScene(ctx, 'livre'), 300, 1 / 30, livre, 'lendária Modo Livre')
+        finally:
+            ctx.shop.equipar(anterior)
+
     @checar('telas', 'Equipamentos: fixo e aleatório')
     def _():
         def alternar(cena, i):

@@ -21,9 +21,10 @@ from flappy_arcade.systems.shop import JA_POSSUI, OK, SEM_MOEDAS
 
 # ---------------------------------------------------------------- skins
 def test_categorias_de_skins():
-    assert {c: len(POR_CATEGORIA[c]) for c in CATEGORIAS} == {CLASSICAS: 18, FANTASIAS: 35, TIMES: 32}
-    assert len(SKINS) == len(POR_ID) == 85
-    assert all(s.tipo == 'arte' for s in POR_CATEGORIA[FANTASIAS] + POR_CATEGORIA[TIMES])
+    assert {c: len(POR_CATEGORIA[c]) for c in CATEGORIAS} == {CLASSICAS: 18, FANTASIAS: 36, TIMES: 32}
+    assert len(SKINS) == len(POR_ID) == 86
+    # Fantasias e Times são artes; a única exceção é a lendária (personagem com poses, Fase 22)
+    assert [s.id for s in POR_CATEGORIA[FANTASIAS] + POR_CATEGORIA[TIMES] if s.tipo != 'arte'] == ['wilson']
 
 
 def test_toda_arte_do_catalogo_existe_e_toda_arte_esta_no_catalogo():
@@ -37,6 +38,8 @@ def test_precos_aprovados_das_skins_novas():
                'gamer', 'inverno', 'verao'}
     radicais = {'unicornio': 'rastro_arco_iris', 'fada': 'brilho', 'futurista': 'neon', 'dinossauro': 'poeira'}
     for s in POR_CATEGORIA[FANTASIAS]:
+        if s.id == 'wilson':                 # a lendária tem testes próprios (test_lendaria.py)
+            continue
         if s.id in simples:
             assert s.preco == 120, s.id
         elif s.id in radicais:

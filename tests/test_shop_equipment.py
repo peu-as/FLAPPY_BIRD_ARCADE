@@ -47,7 +47,7 @@ def test_abas_e_filtros(ctx):
     loja = ShopScene(ctx)
     ctx.scenes.push(loja)
     assert loja.aba == SKINS_ABA and loja.filtro[SKINS_ABA] == 'classicas'
-    assert [b.rotulo for b in loja.botoes_filtro] == ['CLÁSSICAS (18)', 'FANTASIAS (35)', 'TIMES (32)']
+    assert [b.rotulo for b in loja.botoes_filtro] == ['CLÁSSICAS (18)', 'FANTASIAS (36)', 'TIMES (32)']
     tecla(loja, pygame.K_e)
     assert loja.itens == POR_CATEGORIA['fantasias'] and loja.indice == 0
     tecla(loja, pygame.K_e)

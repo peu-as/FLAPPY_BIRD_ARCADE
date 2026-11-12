@@ -17,7 +17,8 @@ import pygame
 
 from ..config.constants import ALTURA, LARGURA
 from ..config.scenarios import CENARIOS, MODO_FIXO, NOMES_GRUPO, NOVOS, ORIGINAIS
-from ..config.skins import CATEGORIAS, CORES_RARIDADE, NOMES_CATEGORIA, NOMES_RARIDADE, POR_CATEGORIA, POR_ID
+from ..config.skins import (CATEGORIAS, CORES_RARIDADE, LENDARIA, NOMES_CATEGORIA, NOMES_RARIDADE, POR_CATEGORIA,
+                             POR_ID)
 from ..core.paths import MUSICA_MENU
 from ..core.scene import Scene
 from ..gameplay.coins import icone_moeda
@@ -471,6 +472,8 @@ class ShopScene(Scene):
         cor = CORES_RARIDADE[skin.raridade]
         possui = self.loja.possui(skin.id)
         painel(surface, rect, Palette.PANEL_LIGHT if possui else Palette.PANEL, sombra=4)
+        if skin.raridade == LENDARIA:
+            self._moldura_lendaria(surface, rect)
         faixa = pygame.Rect(rect.x + 3, rect.y + 3, rect.w - 6, 24)
         pygame.draw.rect(surface, cor, faixa, border_top_left_radius=8, border_top_right_radius=8)
         rotulo = texto(NOMES_RARIDADE[skin.raridade], 18, Palette.WHITE, None)
@@ -489,6 +492,12 @@ class ShopScene(Scene):
             x = rect.centerx - (icone.get_width() + 4 + preco.get_width()) // 2
             surface.blit(icone, icone.get_rect(midleft=(x, rect.bottom - 20)))
             surface.blit(preco, preco.get_rect(midleft=(x + icone.get_width() + 4, rect.bottom - 20)))
+
+    def _moldura_lendaria(self, surface, rect):
+        """Moldura dourada que pulsa (fixa com os efeitos visuais desligados)."""
+        fase = (math.sin(self.tempo * 4) + 1) / 2 if self.ctx.settings.visual_fx_enabled else 1.0
+        cor = tuple(round(a + (b - a) * fase) for a, b in zip(CORES_RARIDADE[LENDARIA], (255, 236, 140)))
+        pygame.draw.rect(surface, cor, rect.inflate(4, 4), 3, border_radius=12)
 
     def _desenhar_cartao_cenario(self, surface, cenario, rect):
         possui = self.cenarios.possui(cenario.id)

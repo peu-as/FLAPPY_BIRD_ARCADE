@@ -16,7 +16,7 @@
 
 | Ferramenta | Uso |
 |---|---|
-| **ChatGPT** (OpenAI) | Geração das artes das skins (fantasias e times) e dos cenários novos (folhas em `artes/`, importadas para `assets/skins` e `assets/cenarios` por `tools/importar_artes.py`). |
+| **ChatGPT** (OpenAI) | Geração das artes das skins (fantasias e times) e dos cenários novos (folhas em `artes/`, importadas para `assets/skins` e `assets/cenarios` por `tools/importar_artes.py`), da folha do personagem lendário Wilson Luciano (`artes/wilson_luciano.png`, importada por `tools/importar_personagem.py`) e da capa (`artes/capa.png`, que vira o ícone por `tools/gerar_icone.py`). |
 | **Claude** (Anthropic) | Assistente de programação: apoio na implementação, nos testes automáticos, na calibração da dificuldade e na documentação. As decisões de projeto, os testes de jogo e a revisão foram feitos pelo grupo. |
 
 ## Recursos gráficos e sonoros
@@ -26,6 +26,8 @@
 | Sprites do pássaro, canos, chão, fundos, números e logotipo (`assets/imgs`) | Repositório do curso. Baseados no jogo *Flappy Bird* (Dong Nguyen / .GEARS Studios, 2013); marca e personagem pertencem aos seus titulares. |
 | Pássaros especiais da pasta `assets/imgs` (Blue, Bubble, Chuck, Doge, Fishy, Kirby e outros) | Repositório do curso (variações feitas por fãs). Aparecem como pássaros-obstáculo e inimigos da Galaga, como no jogo original das aulas. Alguns lembram personagens de terceiros (Kirby, da Nintendo/HAL Laboratory; Chuck, de *Angry Birds*, da Rovio); não foram usados em conteúdo novo (skins, modos novos). |
 | Sons `wing`, `point`, `hit`, `die` e músicas `chiptune_begin`, `game_over` e `game_over_arcade` (`assets/audio`) | Repositório do curso. |
+| Skin lendária Wilson Luciano (`assets/personagens/wilson`) | Gerada com o ChatGPT (OpenAI). Homenagem do grupo ao Prof. Wilson Luciano, professor da disciplina. Uso acadêmico, sem fins comerciais. |
+| Ícone do jogo (`assets/icone`) | Recortes da capa gerada com o ChatGPT (OpenAI). |
 | Skins de fantasias e de times (`assets/skins`) e cenários novos (`assets/cenarios`) | Gerados com o ChatGPT (OpenAI). As skins de times usam cores e símbolos inspirados em clubes de futebol; nomes, escudos e marcas pertencem aos clubes. Uso acadêmico, sem fins comerciais. |
 | Kong, barris, cipós, bananas, chefão da Galaga, itens dos bônus, peças do Combina 3, casulos | Desenhados por código no próprio projeto (`gameplay/procedural.py`, `gameplay/bonus_visuals.py`, `gameplay/combina3/visual.py`). |
 | Músicas de fundo `musica_menu` e `musica_jogo` | Compostas e sintetizadas por código no projeto (`tools/gerar_musica.py`). |

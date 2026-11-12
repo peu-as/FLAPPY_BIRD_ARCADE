@@ -46,6 +46,8 @@ IMAGENS = RAIZ_RECURSOS / 'assets' / 'imgs'
 AUDIOS = RAIZ_RECURSOS / 'assets' / 'audio'
 ARTES_SKINS = RAIZ_RECURSOS / 'assets' / 'skins'          # tools/importar_artes.py
 ARTES_CENARIOS = RAIZ_RECURSOS / 'assets' / 'cenarios'
+PERSONAGENS = RAIZ_RECURSOS / 'assets' / 'personagens'   # tools/importar_personagem.py
+ICONES = RAIZ_RECURSOS / 'assets' / 'icone'               # tools/gerar_icone.py
 
 PASTA_DADOS = RAIZ_DADOS / 'data'
 ARQUIVO_RECORDE = PASTA_DADOS / 'recorde.json'   # formato antigo, só leitura

@@ -1,6 +1,6 @@
 # Testes manuais e checklist de entrega
 
-Complementa os testes automáticos (`python -m pytest`, 640 testes, e `python tools/verificar_jogo.py`). Marque cada item com ✅ (ok) ou ❌ (problema, com observação) antes da entrega. Os itens 1 a 3 vêm do checklist das Aulas 05.0/05.1 e da Sprint 05.
+Complementa os testes automáticos (`python -m pytest`, 663 testes, e `python tools/verificar_jogo.py`). Marque cada item com ✅ (ok) ou ❌ (problema, com observação) antes da entrega. Os itens 1 a 3 vêm do checklist das Aulas 05.0/05.1 e da Sprint 05.
 
 **Testado por:** ____________________ **Data:** ___/___/2026 **Commit:** ____________
 
@@ -18,6 +18,7 @@ Complementa os testes automáticos (`python -m pytest`, 640 testes, e `python to
 | # | Teste | Como | Resultado |
 |---|---|---|---|
 | 2.1 | Gera o executável | comando do PyInstaller do README; aparece `dist\FlappyBird.exe` | |
+| 2.1b | Ícone | o `FlappyBird.exe` aparece no Explorer com o ícone da capa (logotipo e pássaro); a janela e a barra de tarefas mostram o pássaro da capa | |
 | 2.2 | Abre fora do projeto | copiar o `.exe` para outra pasta (ex.: Área de Trabalho) e abrir com dois cliques | |
 | 2.3 | Imagens e sons | menu com música, sons ao pular e pontuar, skins e cenários aparecem | |
 | 2.4 | Persistência | ganhar moedas e uma estrela, jogar o Clássico até o ranking, fechar, reabrir: moedas, estrela e ranking continuam (ficam em `%LOCALAPPDATA%\FlappyBird`) | |
@@ -43,6 +44,7 @@ Complementa os testes automáticos (`python -m pytest`, 640 testes, e `python to
 | 4.5 | Arcade: casa 1 do capítulo 1 | |
 | 4.6 | Modo Livre: cair não encerra; recorde de sequência salvo | |
 | 4.7 | Loja: comprar uma skin e um cenário; Equipamentos: modo fixo e aleatório | |
+| 4.7b | Skin lendária: na aba Fantasias, Wilson Luciano tem moldura dourada e custa 5000; na vitrine troca de pose; equipada, muda de pose ao subir, planar, mergulhar e no chão, com aura, rastro e faíscas douradas (somem com os efeitos visuais desligados) | |
 | 4.8 | Configurações: música, efeitos sonoros e efeitos visuais ligam e desligam | |
 | 4.9 | Dica de tutorial aparece uma vez em cada modo novo | |
 | 4.10 | Ctrl + Shift + A no menu: tudo liberado; de novo: volta ao jogo normal intacto | |

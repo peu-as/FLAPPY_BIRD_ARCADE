@@ -320,3 +320,15 @@ Um agente que não acompanhou o desenvolvimento testou o jogo inteiro numa cópi
 - **Save:** dois saves corrompidos no mesmo segundo não se sobrescrevem mais.
 - **Modo Apresentação:** "Resetar progresso" com ele ligado recomeça a apresentação (tudo liberado de novo), em vez de deixar um perfil vazio.
 - **Documentação:** contagens das casas do Combina 3, pontos de gelo/caixa/combo e o dano dos combos nos chefões.
+
+# Fase 22 — skin lendária
+
+A **Wilson Luciano** abre uma raridade nova, **Lendária** (`FAIXAS_PRECO`: 5.000 a 20.000), e custa **5.000 moedas**: o dobro da Arco-íris (2.500, a mais cara até aqui) e mais que qualquer cenário (o mais caro custa 1.300). As radicais ficam na faixa 1.000–2.500.
+
+| Medição | Antes | Fase 22 |
+|---|---|---|
+| Loja inteira | 53.395 | **58.395** (36.645 em skins, 21.750 em cenários) |
+| Bônus de estrelas (5 mapas + Arcade, 3 estrelas) | 20.700 = 39% da loja | 20.700 = **35%** da loja (o teste exige 30–42%) |
+| Wilson Luciano no Modo Livre (jogador bom, ~26 moedas/min) | — | ~3 h 10 min |
+
+Leitura: é o troféu do jogo, uma meta de longo prazo, como as radicais eram antes. Nenhum outro preço mudou. `tests/test_lendaria.py` confere que ela é a mais cara de todas e a única lendária; `tests/test_economy.py` confere que os preços seguem a ordem das raridades.

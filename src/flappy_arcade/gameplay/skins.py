@@ -11,6 +11,7 @@ from collections import deque
 import pygame
 
 from ..config.skins import BARRIGA, BICO, CORPO, CORPO_SOMBRA, PALETA_ORIGINAL, POR_ID
+from .lendaria import Lendaria
 
 PASSOS_ARCO_IRIS = 12
 DESLIZE_RASTRO = 5            # px por quadro: o rastro "fica para trás" como o cenário
@@ -40,9 +41,16 @@ class SkinVisual:
     def __init__(self, skin_id, recursos):
         self.definicao = POR_ID[skin_id]
         self.efeitos = True           # efeitos visuais extras (configuração)
+        self.vitrine = False          # na vitrine da loja o personagem reveza as poses
+        self.aleatorio = random.Random(skin_id)   # nunca usa o random do jogo
+        self.lendaria = None
         base = recursos.passaros['dia']
         d = self.definicao
-        if d.tipo == 'especial':
+        if d.tipo == 'personagem':    # poses no voo; o retrato vai nos cartões e no Estilingue
+            poses = recursos.poses_personagem(d.sprite)
+            self.quadros = [poses['retrato']]
+            self.lendaria = Lendaria(poses, self.aleatorio)
+        elif d.tipo == 'especial':
             self.quadros = [recursos.especiais[d.sprite]]
         elif d.tipo == 'arte':
             self.quadros = [recursos.arte_skin(d.sprite)]
@@ -56,7 +64,6 @@ class SkinVisual:
         self.brilhos = []
         self.poeira = []
         self.quadro_atual = 0
-        self.aleatorio = random.Random(skin_id)   # nunca usa o random do jogo
 
     @property
     def id(self):
@@ -70,6 +77,10 @@ class SkinVisual:
 
     def desenhar(self, tela, passaro, angulo):
         self.quadro_atual += 1
+        if self.lendaria is not None:
+            efeitos = self.efeitos and self.definicao.efeito == 'lendario'
+            self.lendaria.desenhar(tela, passaro, angulo, efeitos, self.vitrine)
+            return
         centro = passaro.retangulo().center
         efeito = self.definicao.efeito if self.efeitos else ''
         sprite = pygame.transform.rotate(self.sprite_para(passaro.indice), angulo)

@@ -24,7 +24,7 @@ Arquivo: `PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2 – Aprese
 
 ## Demonstração (slide 13)
 
-1. **Menu principal (20 s):** mostrar os oito modos, a loja e os Equipamentos.
+1. **Menu principal (20 s):** mostrar os oito modos, a loja (na aba Fantasias, a skin lendária Wilson Luciano trocando de pose) e os Equipamentos.
 2. **Clássico (1 min):**
    - digitar um nome e jogar alguns canos;
    - bater de propósito para mostrar a vida a menos;

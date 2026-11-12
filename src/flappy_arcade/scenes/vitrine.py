@@ -89,6 +89,7 @@ class Vitrine:
     def visual(self, skin_id):
         if skin_id not in self._visuais:
             self._visuais[skin_id] = SkinVisual(skin_id, self.ctx.resources)
+            self._visuais[skin_id].vitrine = True
         visual = self._visuais[skin_id]
         visual.efeitos = self.ctx.settings.visual_fx_enabled
         return visual

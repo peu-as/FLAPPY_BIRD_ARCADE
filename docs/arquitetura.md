@@ -112,6 +112,8 @@ tools/
 assets/
   imgs/, audio/              artes e sons do jogo original
   skins/                     67 skins importadas (35 fantasias + 32 times), pixel art 2x
+  personagens/wilson/        poses da skin lendária (tools/importar_personagem.py)
+  icone/                     ícone do .exe e da janela, feitos da capa (tools/gerar_icone.py)
   cenarios/                  20 faixas de horizonte com 575 px de largura
 artes/                       folhas originais (fora de assets/, não vão no executável)
   test_*.py                  save, configurações, áudio, cenas, janela, App
@@ -161,7 +163,8 @@ Cada casa é um desafio fechado com 3 vidas, na dificuldade do nível N da curva
 - **Quanto rende** (Fase 14): 0,9 de chance de moeda por passagem, uma moeda a cada 2 s na Galaga, 2 por banana, +10 a cada 10 pontos seguidos sem cair no Modo Livre e `20 + 2 × casa` por estrela nova. Os números e a lógica estão em `docs/balanceamento.md`.
 - **Depósito** na carteira ao fim da partida ou ao sair dela, pela diferença ainda não depositada (seguro se `on_exit` rodar mais de uma vez). Bônus por estrela (`bonus_por_estrela(casa)`) só por estrela nova.
 - **Skins** só mudam o desenho: `Passaro.skin` é usado em `Passaro.desenhar`; colisão e máscara continuam no sprite original. Teste: a mesma partida com e sem moedas/skin tem física idêntica por 1.500 quadros.
-- **Skins** em três categorias: Clássicas (18, as da Fase 5), Fantasias (35 artes) e Times (32 artes). As artes (`tipo='arte'`) são carregadas só quando usadas (`Recursos.arte_skin`).
+- **Skins** em três categorias: Clássicas (18, as da Fase 5), Fantasias (35 artes + a lendária) e Times (32 artes). As artes (`tipo='arte'`) são carregadas só quando usadas (`Recursos.arte_skin`).
+- **Skin lendária** (Fase 22, raridade `LENDARIA`, 5000 moedas, a mais cara do jogo): `tipo='personagem'`, poses em `assets/personagens/wilson/` (`Recursos.poses_personagem`). `gameplay/lendaria.py` escolhe a pose pela velocidade do pássaro (pulo, planar, mergulho, no chão; na vitrine as poses se revezam) e desenha o efeito `lendario`: aura dourada aditiva, rastro de silhuetas, faíscas com gravidade, explosão e onda a cada bater de asas e um reflexo que atravessa o personagem. Como toda skin, só aparência: `tests/test_lendaria.py` confere quadro a quadro que posição, velocidade e retângulo de colisão são idênticos com e sem ela, e que o `random` do jogo não é tocado. O retrato aparece nos cartões da loja e no Estilingue.
 - **Preços das skins**: comuns 50–200, raras 250–500, radicais 1000+ (`FAIXAS_PRECO`). Times 200; fantasias simples 120; detalhadas 350–500; radicais com efeito: Dinossauro 1200 (poeira), Fada 1500 (brilhos), Futurista 1800 (neon), Unicórnio 2000 (rastro arco-íris).
 - **Cenários** (`config/scenarios.py`): 31 no total. Só o `bg` é de graça. Os 10 outros fundos originais custam 150–400 (noite e entardecer mais caros); os 20 novos custam 600, 900 ou 1300. Cada um tem um período, que decide a cor dos canos e dos pássaros quando ele estiver na tela. O clássico não usa este catálogo.
 - **Coleção de cenários** (`ctx.scenarios`): modo `fixo` (um cenário) ou `aleatorio` (playlist de até 15). Cenário comprado entra na playlist se houver vaga. A playlist nunca fica vazia; dados estragados no save são consertados na leitura.

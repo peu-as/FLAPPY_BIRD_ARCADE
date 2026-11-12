@@ -2,7 +2,7 @@
 import pygame
 
 from ..config.constants import PASSAROS_ESPECIAIS, TAMANHO_INIMIGO, TAMANHO_NAVE, TEMAS
-from ..core.paths import ARTES_SKINS, AUDIOS, IMAGENS
+from ..core.paths import ARTES_SKINS, AUDIOS, ICONES, IMAGENS, PERSONAGENS
 from .procedural import (
     criar_banana,
     criar_barril_rolante,
@@ -125,6 +125,7 @@ class Recursos:
         # Efeitos dos modos novos (Estilingue e Combina 3), gerados por tools/gerar_sons.py.
         self.sons.update({nome: som(f'sfx_{nome}.wav') for nome in SONS_MODOS_NOVOS})
         self._artes_skins = {}
+        self._personagens = {}
         self._cenarios = None
 
     @property
@@ -140,3 +141,21 @@ class Recursos:
         if nome not in self._artes_skins:
             self._artes_skins[nome] = pygame.image.load(str(ARTES_SKINS / f'{nome}.png')).convert_alpha()
         return self._artes_skins[nome]
+
+    def poses_personagem(self, nome):
+        """Poses de um personagem (assets/personagens/<nome>/<pose>.png), carregadas sob demanda."""
+        if nome not in self._personagens:
+            pasta = PERSONAGENS / nome
+            self._personagens[nome] = {arquivo.stem: pygame.image.load(str(arquivo)).convert_alpha()
+                                       for arquivo in sorted(pasta.glob('*.png'))}
+        return self._personagens[nome]
+
+    def icone_janela(self):
+        """Ícone da janela e da barra de tarefas (feito da capa por tools/gerar_icone.py).
+
+        Sem o arquivo, volta ao pássaro original, como antes.
+        """
+        caminho = ICONES / 'icone_janela.png'
+        if caminho.exists():
+            return pygame.image.load(str(caminho)).convert_alpha()
+        return self.passaros['dia'][0]

@@ -15,7 +15,7 @@ Fonte: material do curso no repositório original (`aulas/aula-01.0-planejamento
 | 7 | Controles, obstáculos e colisões funcionais | 1,0 | forte | explicar colisão (retângulo + máscara) no relatório |
 | 8 | Pontuação, vidas, encerramento e reinício | 1,0 | forte | demonstrar na apresentação |
 | 9 | Compreensão da física e programação | 0,5 | implementado, falta explicar | seção de física: integração por quadro, gravidade e salto em px/quadro, Estilingue com pymunk |
-| 10 | Testes, erros e limitações | 0,5 | forte: 640 testes, golden master, robôs; `docs/testes_manuais.md` com checklist e limitações (Fase 19) | grupo preencher o checklist; resumir no relatório |
+| 10 | Testes, erros e limitações | 0,5 | forte: 663 testes, golden master, robôs; `docs/testes_manuais.md` com checklist e limitações (Fase 19) | grupo preencher o checklist; resumir no relatório |
 | 11 | README e Git/GitHub | 0,5 | README do Flappy Arcade com imagens, instruções e histórico (Fase 19); repositório https://github.com/peu-as/FLAPPY_BIRD_ARCADE | enviar o histórico com as tags |
 | 12 | Incrementos efetivamente implementados | 0,5 | forte (fases 8–18) | lista de incrementos no relatório |
 | 13 | Apresentação em PowerPoint | 0,5 | feita (Fase 21): 16 slides com notas do orador + `docs/roteiro_apresentacao.md` | ensaiar; preparar o vídeo do plano B |
