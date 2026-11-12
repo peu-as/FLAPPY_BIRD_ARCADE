@@ -6,8 +6,8 @@ Fonte: material do curso no repositório original (`aulas/aula-01.0-planejamento
 
 | Nº | Critério | Pontos | Situação do projeto | O que falta |
 |---|---|---:|---|---|
-| 1 | Identificação de pasta e arquivos: **PPEM Python – Aluno1-Aluno2-Aluno3 – Projeto 2 – 26.2** | 0,5 | nome definido: **PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2** | aplicar à pasta, ao PDF e ao PPTX (Fase 21) |
-| 2 | Relatório técnico completo (PDF) | 1,0 | não feito | escrever o relatório |
+| 1 | Identificação de pasta e arquivos: **PPEM Python – Aluno1-Aluno2-Aluno3 – Projeto 2 – 26.2** | 0,5 | `tools/montar_entrega.py` monta a pasta com os nomes no padrão (Fase 21) | rodar com o PDF e o PPTX finais |
+| 2 | Relatório técnico completo (PDF) | 1,0 | escrito (Fase 20): documento "PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2 – Relatório Técnico", 11 seções + créditos, com gráfico, diagrama e telas | revisar em grupo e exportar em PDF com o nome no padrão |
 | 3 | Ambiente Python, dependências e estrutura | 0,5 | forte: `.venv`, `requirements.txt` (pygame, pymunk), estrutura modular | descrever no README e no relatório |
 | 4 | Explicação dos parâmetros e funcionamento | 1,0 | parcial: `docs/arquitetura.md`, `docs/balanceamento.md` | tabela de parâmetros (gravidade, salto, velocidades, FPS, dificuldade) no relatório |
 | 5 | Originalidade, complexidade e criatividade | 1,0 | forte: 5 mapas, Arcade, Modo Livre, Estilingue com física, Combina 3, loja | mostrar bem no relatório e na apresentação |
@@ -15,10 +15,10 @@ Fonte: material do curso no repositório original (`aulas/aula-01.0-planejamento
 | 7 | Controles, obstáculos e colisões funcionais | 1,0 | forte | explicar colisão (retângulo + máscara) no relatório |
 | 8 | Pontuação, vidas, encerramento e reinício | 1,0 | forte | demonstrar na apresentação |
 | 9 | Compreensão da física e programação | 0,5 | implementado, falta explicar | seção de física: integração por quadro, gravidade e salto em px/quadro, Estilingue com pymunk |
-| 10 | Testes, erros e limitações | 0,5 | forte: 635 testes, golden master, robôs; `docs/testes_manuais.md` com checklist e limitações (Fase 19) | grupo preencher o checklist; resumir no relatório |
+| 10 | Testes, erros e limitações | 0,5 | forte: 640 testes, golden master, robôs; `docs/testes_manuais.md` com checklist e limitações (Fase 19) | grupo preencher o checklist; resumir no relatório |
 | 11 | README e Git/GitHub | 0,5 | README do Flappy Arcade com imagens, instruções e histórico (Fase 19); repositório https://github.com/peu-as/FLAPPY_BIRD_ARCADE | enviar o histórico com as tags |
 | 12 | Incrementos efetivamente implementados | 0,5 | forte (fases 8–18) | lista de incrementos no relatório |
-| 13 | Apresentação em PowerPoint | 0,5 | não feito | slides + roteiro de demonstração |
+| 13 | Apresentação em PowerPoint | 0,5 | feita (Fase 21): 16 slides com notas do orador + `docs/roteiro_apresentacao.md` | ensaiar; preparar o vídeo do plano B |
 | 14 | Bibliografia e créditos | 0,5 | `CREDITOS.md` com código, IA (ChatGPT nas artes, Claude no código), recursos, bibliotecas e bibliografia (Fase 19) | repetir no relatório e no último slide |
 
 **Entregas:** relatório PDF, código e recursos, apresentação PowerPoint, link do GitHub, README e referências. Um executável não substitui o código-fonte.

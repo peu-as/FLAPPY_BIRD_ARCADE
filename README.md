@@ -104,7 +104,7 @@ src/flappy_arcade/
   gameplay/   regras e desenho das fases (Flappy, Galaga, Donkey, Estilingue, Combina 3)
   scenes/     telas: menu, mapas, casa, loja, pausa, configurações
   ui/         tema de cores, botões e textos
-tests/        635 testes automáticos (pytest), incluindo o golden master do Clássico
+tests/        640 testes automáticos (pytest), incluindo o golden master do Clássico
 tools/        verificação antes do commit, robôs de calibração, geradores de som e música, importador de artes
 assets/       imagens, sons, skins e cenários usados pelo jogo
 artes/        folhas originais das artes (não vão para o executável)
@@ -117,13 +117,21 @@ Detalhes da arquitetura (regras de dependência, cenas, save, cada modo) em [`do
 ## Testes
 
 ```powershell
-python -m pytest                  # 635 testes automáticos
+python -m pytest                  # 640 testes automáticos
 python tools/verificar_jogo.py    # abre todas as telas sem janela + testes; deve terminar com PRONTO PARA O COMMIT
 ```
 
 - **Golden master:** o Clássico é comparado com gravações do jogo original (física, pontuação e sorteios iguais).
 - **Robôs de calibração:** `tools/playtest.py`, `tools/playtest_estilingue.py` e `tools/playtest_combina3.py` jogam as casas para medir a dificuldade (resultados em [`docs/balanceamento.md`](docs/balanceamento.md)).
 - **Testes manuais:** roteiro em [`docs/testes_manuais.md`](docs/testes_manuais.md).
+
+## Entrega do trabalho
+
+```powershell
+python tools/montar_entrega.py --relatorio <PDF do relatório> --apresentacao <arquivo .pptx>
+```
+
+Monta `entrega/PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2/` com o código (só o que está commitado), o relatório, a apresentação e o link do GitHub, todos com os nomes no padrão da disciplina, e confere se cada arquivo abre. `--exe` inclui o `dist\FlappyBird.exe`.
 
 ## Documentação
 
@@ -133,6 +141,7 @@ python tools/verificar_jogo.py    # abre todas as telas sem janela + testes; dev
 | [`docs/balanceamento.md`](docs/balanceamento.md) | Dificuldade e economia, com as medições dos robôs |
 | [`docs/como_adicionar_artes.md`](docs/como_adicionar_artes.md) | Passo a passo para importar novas skins e cenários |
 | [`docs/testes_manuais.md`](docs/testes_manuais.md) | Roteiro de testes manuais e de entrega |
+| [`docs/roteiro_apresentacao.md`](docs/roteiro_apresentacao.md) | Roteiro da apresentação: falas, demonstração e perguntas prováveis |
 | [`CREDITOS.md`](CREDITOS.md) | Créditos, recursos de terceiros e bibliografia |
 | [`aulas/`](aulas/) e [`docs/sprints/`](docs/sprints/) | Material da disciplina |
 
@@ -152,6 +161,8 @@ O projeto seguiu as sprints da disciplina (00 a 05: ambiente, física, obstácul
 | 16 – 17 | Modo Combina 3: tabuleiro, peças especiais, 25 casas com objetivos e chefões |
 | 18 | Economia dos modos novos, sons, dicas de tutorial e verificação por um revisor independente |
 | 19 | README, créditos, licença e roteiro de testes para a entrega |
+| 20 | Relatório técnico |
+| 21 | Apresentação, roteiro e montagem da pasta de entrega (`tools/montar_entrega.py`) |
 
 ## Créditos e licença
 

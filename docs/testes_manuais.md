@@ -1,6 +1,6 @@
 # Testes manuais e checklist de entrega
 
-Complementa os testes automáticos (`python -m pytest`, 635 testes, e `python tools/verificar_jogo.py`). Marque cada item com ✅ (ok) ou ❌ (problema, com observação) antes da entrega. Os itens 1 a 3 vêm do checklist das Aulas 05.0/05.1 e da Sprint 05.
+Complementa os testes automáticos (`python -m pytest`, 640 testes, e `python tools/verificar_jogo.py`). Marque cada item com ✅ (ok) ou ❌ (problema, com observação) antes da entrega. Os itens 1 a 3 vêm do checklist das Aulas 05.0/05.1 e da Sprint 05.
 
 **Testado por:** ____________________ **Data:** ___/___/2026 **Commit:** ____________
 
@@ -52,7 +52,7 @@ Complementa os testes automáticos (`python -m pytest`, 635 testes, e `python to
 
 | # | Item | Resultado |
 |---|---|---|
-| 5.1 | Pasta e arquivos com o nome **PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2** | |
+| 5.1 | Pasta e arquivos com o nome **PPEM Python – Pedro-Ruan-Guilherme – Projeto 2 – 26.2** (`python tools/montar_entrega.py` termina com ENTREGA PRONTA) | |
 | 5.2 | Relatório PDF abre e está completo | |
 | 5.3 | Apresentação PowerPoint abre | |
 | 5.4 | README com imagens e instruções; link do GitHub funcionando | |
@@ -60,7 +60,7 @@ Complementa os testes automáticos (`python -m pytest`, 635 testes, e `python to
 
 ## Limitações conhecidas
 
-- **Física por quadro:** como no jogo original das aulas, gravidade e salto são somados a cada quadro, calibrados para 30 quadros por segundo. Num computador que não mantém 30 FPS, o jogo fica mais lento em vez de pular quadros. As medições de desempenho mostraram folga grande (pior quadro abaixo de 33 ms em todas as telas).
+- **Física por quadro:** como no jogo original das aulas, gravidade e salto são somados a cada quadro, calibrados para 30 quadros por segundo. Num computador que não mantém 30 FPS, o jogo fica mais lento em vez de pular quadros. Nas partidas medidas, 99% dos quadros ficam abaixo de 13 ms (o limite é 33 ms); os picos isolados aparecem ao abrir telas, como as prévias da loja.
 - **Dificuldade medida por robôs:** o robô da Galaga morre mais que uma pessoa nos mergulhos (só a forma da curva é confiável), o Donkey Kong não tem robô e o robô "bom" do Combina 3 enxerga as peças que vão cair. As curvas foram conferidas também jogando; ajustes finos estão documentados em `docs/balanceamento.md`.
 - **Executável sem assinatura digital:** o Windows pode mostrar o aviso do Microsoft Defender SmartScreen. Não desative as proteções; o código-fonte está no repositório para quem preferir rodar pelo Python.
 - **Executável testado no Windows;** pelo código-fonte o jogo também roda em Linux (é onde os testes automáticos rodam).
