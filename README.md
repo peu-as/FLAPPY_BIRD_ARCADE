@@ -1,131 +1,160 @@
 <div align="center">
 
-# 🐤 Flappy Bird com Python e Pygame
+# 🐤 Flappy Arcade
 
-**Projeto didático · Programação para Engenharia Mecânica · UFS/DMEC**
+**Projeto 2 · Programação para Engenharia Mecânica (PPEM) · UFS/DMEC · 2026.2**
 
-<img src="assets/imgs/Flappy_Bird_logo.png" alt="Ilustração do Flappy Bird incluída nos recursos do projeto" width="160">
+**Equipe:** Pedro · Ruan · Guilherme  ·  **Professor:** Wilson Luciano
 
-*Da primeira janela à programação orientada a objetos, física, colisões e persistência de dados.*
+<img src="docs/imagens/banner.png" alt="Telas do Flappy Arcade: menu, Flappy, Estilingue e Combina 3" width="900">
+
+*Flappy Bird, Galaga, Donkey Kong, estilingue e combinar 3 num só jogo, feito em Python e Pygame.*
 
 </div>
 
-> **Projeto de aprendizagem:** os alunos constroem o jogo progressivamente, seguindo aulas teóricas e roteiros práticos. Este repositório não pressupõe que todas as funcionalidades já estejam implementadas no `src/main.py` inicial.
+## Sobre o jogo
 
-## 🎮 Baixe e jogue — Windows
+O **Flappy Arcade** começou como o Flappy Bird das aulas da disciplina e cresceu em fases até virar um arcade completo. Ele tem cinco mapas de 25 casas, uma jornada em capítulos, um modo sem fim, loja com 85 skins e 31 cenários, e dois modos de jogo novos: um com física de verdade (Estilingue) e um quebra-cabeça de combinar peças (Combina 3).
 
-**Quer experimentar o jogo pronto?** Consulte as [versões e downloads do Flappy Bird](https://github.com/wilson-luciano/flappybird/releases). Em uma versão publicada que contenha o jogo, o arquivo `FlappyBird.exe` aparecerá nos **Assets** da respectiva Release.
+O **modo Clássico** foi mantido **idêntico ao original**: um teste automático (*golden master*) compara cada partida com gravações do jogo original, quadro a quadro.
 
-**[📥 Ver versões disponíveis e baixar o jogo](https://github.com/wilson-luciano/flappybird/releases)**
+## Modos de jogo
 
-> **Download direto:** a tag `v0.5.0` foi criada. Para evitar indicar um download não verificado, o acesso acima leva à página oficial de Releases. Depois de confirmar que o anexo `FlappyBird.exe` está disponível e testar seu download, o botão poderá apontar diretamente para `https://github.com/wilson-luciano/flappybird/releases/latest/download/FlappyBird.exe`.
+| Modo | O que é |
+|---|---|
+| **Donkey Kong**, **Galaga**, **Flappy Clássico** | Mapas de 25 casas. Cada casa é um desafio com 3 vidas; chefões nas casas 5, 10, 15, 20 e 25; até 3 estrelas por casa. |
+| **Estilingue** | Lance os pássaros para derrubar fortalezas de gelo, madeira e pedra (física 2D com *pymunk*). Pássaros especiais: Pena Dupla, Semente-Foguete e Ovo Nova. Barris explodem. |
+| **Combina 3** | Troque peças vizinhas para juntar 3 iguais. Objetivos variados (pontos, coletar, gelo, caixas) e chefões que atacam o tabuleiro. Peças especiais: Pena-Raio, Ovo Nova e Arco-íris. |
+| **Arcade (história)** | Jornada de 5 capítulos que mistura os estilos de fase. |
+| **Modo Livre** | Sem game over: a dificuldade sobe com o tempo; recorde de sequência sem cair. |
+| **Clássico** | O jogo original das aulas, com cadastro de nome, ranking e as fases Galaga e Donkey Kong. |
 
-O executável para Windows é preparado para funcionar sem instalar Python ou Pygame separadamente. Para estudar ou modificar o código, baixe o projeto na seção seguinte.
+## Como jogar (Windows)
 
-**Segurança no Windows:** executáveis novos e sem assinatura digital podem acionar o aviso do **Microsoft Defender SmartScreen**. Baixe apenas da Release oficial, confira a procedência, analise o arquivo com o Microsoft Defender e **não desative** as proteções do sistema. Se houver detecção de ameaça ou dúvida, não execute o arquivo.
-
-## 🎯 Objetivos de aprendizagem
-
-Praticar **Python**, estruturas condicionais e de repetição, funções, classes, listas, eventos, animação em tempo real, modelagem simplificada do movimento, colisões, leitura e gravação de arquivos, **Git** e **GitHub**.
-
-## 🖼️ Visão dos recursos gráficos
-
-<div align="center">
-  <img src="assets/imgs/bg.png" alt="Cenário original usado como recurso didático" width="200">
-</div>
-
-*Imagens ilustrativas do conjunto de recursos do projeto; a aparência do jogo depende da sprint implementada.*
-
-## 🚀 Como começar (Windows / VS Code)
-
-Acesse o **[repositório oficial do Flappy Bird](https://github.com/wilson-luciano/flappybird)**. Clique em **Code → Download ZIP** ou clone com Git e abra a pasta `flappybird` no VS Code. Para clonar, use `git clone https://github.com/wilson-luciano/flappybird.git` a partir de `C:\Projetos`. Leia primeiro `aulas/aula-00.0-obtencao-projeto-github.md` e `aulas/aula-01.1-roteiro-pratico.md`.
-
-No terminal PowerShell, na raiz do projeto:
+**Requisitos:** Python 3.12 e Git.
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+git clone https://github.com/peu-as/FLAPPY_BIRD_ARCADE.git
+cd FLAPPY_BIRD_ARCADE
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 python src/main.py
 ```
 
-Se o ambiente virtual já estiver criado, **não é necessário recriá-lo**. Se a ativação estiver bloqueada, consulte as alternativas indicadas na Aula 01.1.
+Atalhos de linha de comando: `python src/main.py --livre` (Modo Livre), `--classico` (Clássico) e `--casa combina3 5` (abre uma casa de qualquer mapa).
 
-## 🎮 Controles por etapa
+### Executável
 
-| Etapa | Comandos |
-|---|---|
-| Sprint 01 | Fechar a janela pelo **X** |
-| Sprint 02 | **Espaço**: salto |
-| Sprint 03 | **Espaço**: iniciar, saltar ou reiniciar; **Esc**: sair |
-| Sprint 04 (após implementação) | **P**: pausar/retomar; **S**: ativar/desativar som; **T**: alternar tema; **Espaço**: jogar |
-
-## 🗺️ Roadmap
-
-| Sprint | Conteúdo | Material |
-|---|---|---|
-| 00 | Preparação e obtenção do projeto | Aula 00.0 e Aula 01.1 |
-| 01 | Primeira janela Pygame | Aulas 01.0 e 01.1 |
-| 02 | Física, gravidade, salto e animação | Aulas 02.0 e 02.1 |
-| 03 | Obstáculos, colisões e pontuação | Aulas 03.0 e 03.1 |
-| 04 | Vidas, pausa, áudio, recorde e tema | Aulas 04.0 e 04.1 |
-| 05 | Testes, empacotamento e entrega do executável | Aulas 05.0 e 05.1 |
-
-Os documentos de acompanhamento ficam em [`docs/roadmap.md`](docs/roadmap.md) e [`docs/sprints/`](docs/sprints/).
-
-## 📁 Estrutura principal
-
-```text
-flappybird/
-├── assets/
-│   ├── imgs/         # sprites e imagens didáticas
-│   └── audio/        # efeitos sonoros
-├── aulas/            # teoria e roteiros práticos
-├── docs/sprints/     # planejamento e critérios de aceitação
-├── src/main.py       # código evolutivo do jogo
-├── tests/.gitkeep     # espaço reservado para testes futuros
-├── .gitignore
-├── LICENSE            # licença MIT do código original
-├── README.md
-└── requirements.txt
-```
-
-## 📦 Executável e distribuição
-
-Na Sprint 05, o jogo é empacotado com o **PyInstaller** para Windows. Depois de executar o procedimento da **Aula 05.1**, o executável gerado estará em:
-
-```text
-flappybird/
-└── dist/
-    └── FlappyBird.exe
-```
-
-O arquivo `FlappyBird.exe` pode ser executado no Windows sem exigir a instalação separada de Python ou Pygame. A pasta `dist/` é uma saída local de compilação e **não precisa ser enviada ao repositório Git**. Para disponibilizar o programa, anexe o `.exe` à Release, conforme o Passo 12 da Aula 05.1. Para baixá-lo, abra [Releases](https://github.com/wilson-luciano/flappybird/releases), selecione uma versão publicada e, em **Assets**, clique em `FlappyBird.exe`.
-
-**Distribuição:** o executável deve ser anexado à Release para ficar disponível ao público. Antes de redistribuir recursos gráficos e sonoros, confirme as permissões aplicáveis; o código original possui licença MIT, mas ela não abrange automaticamente recursos de terceiros.
-
-## 🔐 Licenciamento e direitos de uso
-
-O **código-fonte original** do projeto é disponibilizado sob a licença **MIT**, documentada no arquivo `LICENSE`. Imagens, áudios e outros materiais de terceiros não são automaticamente abrangidos por essa licença. A distribuição pública deve respeitar as permissões aplicáveis a esses recursos.
-
-## 🔐 GitHub e direitos de uso
-
-O projeto de referência está em [github.com/wilson-luciano/flappybird](https://github.com/wilson-luciano/flappybird). Cada estudante deve manter seu próprio repositório, conforme o primeiro envio explicado na **Aula 01.1**. **Antes de publicar este projeto em um repositório público, verifique as licenças e permissões de redistribuição das imagens e dos áudios de terceiros.** Enquanto essa verificação estiver pendente, utilize repositório privado e siga a orientação do professor. Não inclua a pasta `.venv/` nem dados pessoais de execução nos commits.
-
-## 👨‍🏫 Créditos
-
-© 2026 **Wilson Luciano** · **Programação para Engenharia Mecânica** · **Departamento de Engenharia Mecânica (DMEC)** · **Universidade Federal de Sergipe (UFS)**.  
-Material didático do projeto **Flappy Bird com Python e Pygame**.
-
-## 🔄 Atualizar o projeto clonado
-
-Para receber novas alterações do professor, dentro da pasta do projeto:
+Para gerar o `FlappyBird.exe`, que roda sem Python instalado:
 
 ```powershell
-cd C:\Projetos\flappybird
-git status
-git pull origin main
+pip install pyinstaller
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name FlappyBird --add-data "assets;assets" src/main.py
 ```
 
-O `git clone` é usado para obter a primeira cópia com histórico Git; o `git pull` atualiza uma cópia já clonada. Verifique alterações locais antes de atualizar, pois podem ocorrer conflitos. Quem utilizou **Download ZIP** deverá baixar outro ZIP para obter uma nova versão ou configurar Git separadamente.
+O arquivo fica em `dist\FlappyBird.exe`. O progresso, as moedas e o ranking ficam em `%LOCALAPPDATA%\FlappyBird` e continuam lá depois de fechar o jogo.
+
+## Controles
+
+| Onde | Controles |
+|---|---|
+| Menus e mapas | Setas escolhem, ENTER confirma, ESC volta; mouse também funciona |
+| Flappy (canos e pássaros) | ESPAÇO ou clique: bater asas |
+| Fase Galaga | Setas ou A/D: mover · ESPAÇO ou clique: atirar |
+| Fase Donkey Kong | ESPAÇO ou clique: bater asas · X: lançar o Banana-rang |
+| Estilingue | Arraste o pássaro para trás e solte · no ar, clique ou ESPAÇO usa a habilidade · setas + ESPAÇO pelo teclado · roda do mouse ou A/D olham a fortaleza |
+| Combina 3 | Clique em duas peças vizinhas ou arraste · setas movem o cursor, ESPAÇO segura a peça |
+| Durante a partida | P ou ESC: pausa (com configurações, recomeçar e sair) · S: liga/desliga o som no Clássico |
+| Menu principal | **Ctrl + Shift + A**: Modo Apresentação (libera tudo para demonstração sem tocar no save; o mesmo atalho volta ao jogo normal) |
+
+## Galeria
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/imagens/menu.png" width="200"><br>Menu principal</td>
+    <td align="center"><img src="docs/imagens/mapa.png" width="200"><br>Mapa de 25 casas</td>
+    <td align="center"><img src="docs/imagens/flappy.png" width="200"><br>Flappy</td>
+    <td align="center"><img src="docs/imagens/galaga.png" width="200"><br>Fase Galaga</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/imagens/donkey.png" width="200"><br>Fase Donkey Kong</td>
+    <td align="center"><img src="docs/imagens/estilingue.png" width="200"><br>Estilingue</td>
+    <td align="center"><img src="docs/imagens/combina3.png" width="200"><br>Combina 3 (chefão)</td>
+    <td align="center"><img src="docs/imagens/loja.png" width="200"><br>Loja</td>
+  </tr>
+</table>
+
+## O que o jogo tem
+
+- **Progressão:** estrelas por casa, casas que abrem em sequência, chefões, dificuldade em 25 níveis medida por robôs de teste.
+- **Economia:** moedas nas fases, bônus por estrela, loja com 85 skins (clássicas, fantasias e times) e 31 cenários; Equipamentos para escolher cenário fixo ou uma playlist aleatória.
+- **Save seguro:** arquivo versionado, gravação atômica com backup; saves antigos são migrados e saves corrompidos não derrubam o jogo.
+- **Som:** músicas e efeitos 8 bits compostos por código (`tools/gerar_musica.py` e `tools/gerar_sons.py`).
+- **Acessibilidade e conforto:** pausa automática ao perder o foco, efeitos visuais e sons desligáveis, janela redimensionável, dicas de tutorial na primeira vez de cada mecânica.
+
+## Estrutura do projeto
+
+```
+src/main.py                  ponto de entrada (também o do executável)
+src/flappy_arcade/
+  core/       loop, janela, pilha de cenas, relógio, caminhos
+  config/     dados de jogo: física, dificuldade, mapas, economia, catálogos, casas dos modos novos
+  systems/    save, carteira, loja, progresso, áudio, Modo Apresentação
+  gameplay/   regras e desenho das fases (Flappy, Galaga, Donkey, Estilingue, Combina 3)
+  scenes/     telas: menu, mapas, casa, loja, pausa, configurações
+  ui/         tema de cores, botões e textos
+tests/        635 testes automáticos (pytest), incluindo o golden master do Clássico
+tools/        verificação antes do commit, robôs de calibração, geradores de som e música, importador de artes
+assets/       imagens, sons, skins e cenários usados pelo jogo
+artes/        folhas originais das artes (não vão para o executável)
+docs/         documentação técnica
+aulas/        material da disciplina
+```
+
+Detalhes da arquitetura (regras de dependência, cenas, save, cada modo) em [`docs/arquitetura.md`](docs/arquitetura.md).
+
+## Testes
+
+```powershell
+python -m pytest                  # 635 testes automáticos
+python tools/verificar_jogo.py    # abre todas as telas sem janela + testes; deve terminar com PRONTO PARA O COMMIT
+```
+
+- **Golden master:** o Clássico é comparado com gravações do jogo original (física, pontuação e sorteios iguais).
+- **Robôs de calibração:** `tools/playtest.py`, `tools/playtest_estilingue.py` e `tools/playtest_combina3.py` jogam as casas para medir a dificuldade (resultados em [`docs/balanceamento.md`](docs/balanceamento.md)).
+- **Testes manuais:** roteiro em [`docs/testes_manuais.md`](docs/testes_manuais.md).
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [`docs/arquitetura.md`](docs/arquitetura.md) | Organização do código, cenas, save, cada modo de jogo |
+| [`docs/balanceamento.md`](docs/balanceamento.md) | Dificuldade e economia, com as medições dos robôs |
+| [`docs/como_adicionar_artes.md`](docs/como_adicionar_artes.md) | Passo a passo para importar novas skins e cenários |
+| [`docs/testes_manuais.md`](docs/testes_manuais.md) | Roteiro de testes manuais e de entrega |
+| [`CREDITOS.md`](CREDITOS.md) | Créditos, recursos de terceiros e bibliografia |
+| [`aulas/`](aulas/) e [`docs/sprints/`](docs/sprints/) | Material da disciplina |
+
+## Histórico de desenvolvimento
+
+O projeto seguiu as sprints da disciplina (00 a 05: ambiente, física, obstáculos e colisões, recursos, testes e entrega) e depois cresceu em fases, registradas em commits e tags no Git (`git log --oneline` e `git tag` mostram o histórico):
+
+| Fases | Incremento |
+|---|---|
+| Base | Versão fusão: Flappy Bird + fases Galaga e Donkey Kong |
+| 1 – 7 | Código dividido em módulos, Modo Livre, mapas de 25 casas, jornada Arcade, moedas e skins, pausa e configurações, primeira rodada de testes e balanceamento |
+| 8 – 9 | Importação das artes novas (skins e cenários); catálogos e save versão 2 |
+| 10 – 11 | Cenários nas fases; Galaga e Donkey Kong com os cenários e as skins |
+| 12 – 13 | Loja com abas e Equipamentos; bônus redesenhados |
+| 14 | Economia, decisões de dificuldade e verificação de qualidade |
+| 15 | Modo Estilingue (física com pymunk) |
+| 16 – 17 | Modo Combina 3: tabuleiro, peças especiais, 25 casas com objetivos e chefões |
+| 18 | Economia dos modos novos, sons, dicas de tutorial e verificação por um revisor independente |
+| 19 | README, créditos, licença e roteiro de testes para a entrega |
+
+## Créditos e licença
+
+O **código** é distribuído sob a **licença MIT** (veja [`LICENSE`](LICENSE)): parte dele vem do projeto didático do Prof. Wilson Luciano ([wilson-luciano/flappybird](https://github.com/wilson-luciano/flappybird)), também MIT, e o restante foi escrito pelo grupo.
+
+A licença do código **não se aplica aos recursos de terceiros** (imagens e sons do repositório do curso, personagens e marcas que inspiraram skins e modos). As artes novas de skins e cenários foram geradas com o ChatGPT (OpenAI). Este é um projeto acadêmico, sem fins comerciais. Créditos completos e bibliografia em [`CREDITOS.md`](CREDITOS.md).
